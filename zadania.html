@@ -5,6 +5,8 @@
   <title>Zadania - PDA DEDRA v10.3</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#ffffff" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1212,7 +1214,7 @@
     }
     
     .today-evening-section {
-      margin-top: 60px; /* Środek widocznej przestrzeni (minus dolny pasek) */
+      margin-top: max(200px, calc(50vh - 50px)); /* Środek widocznej przestrzeni (minus dolny pasek) */
       padding-top: 20px;
       border-top: 1px solid #e5e7eb; /* Kreska separująca */
     }
