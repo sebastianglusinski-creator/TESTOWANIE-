@@ -1,0 +1,3016 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zadania - PDA DEDRA v10.3</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #2563eb;
+      --ink: #111827;
+      --muted: #6b7280;
+      --bg: #ffffff;
+      --danger: #ef4444;
+      --overdue-bg: #fff1f2; /* very light rose */
+      --overdue-border: #fecdd3; /* soft border */
+      --overdue-text: #9f1239; /* dim red for text */
+      
+      /* Safe area insets - automatyczne dla każdego urządzenia */
+      --sat: env(safe-area-inset-top);
+      --sar: env(safe-area-inset-right);
+      --sab: env(safe-area-inset-bottom);
+      --sal: env(safe-area-inset-left);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+      overflow: hidden;
+      height: 100vh;
+      padding: var(--sat) var(--sar) var(--sab) var(--sal);
+    }
+
+    .material-symbols-rounded {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+    }
+
+    /* Ekrany */
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      padding: 20px 16px 24px;
+      padding-top: max(20px, calc(var(--sat) + 8px));
+      background: var(--bg);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.18s ease-out, opacity 0.18s ease-out;
+      will-change: transform, opacity;
+    }
+
+    #homeScreen {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    .screen.active { z-index: 2; }
+
+    /* HOME */
+
+    .home-header {
+      margin-bottom: 6px;
+      margin-top: 12px;
+      text-align: center;
+    }
+    .home-date-day {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .home-date-full {
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .category-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+      will-change: transform, box-shadow;
+    }
+    .category-card:active {
+      transform: scale(0.97);
+      box-shadow: 0 3px 12px rgba(0,0,0,.14);
+    }
+
+    .category-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .category-icon {
+      font-family: 'Material Symbols Rounded';
+      font-size: 26px;
+      width: 32px;
+      text-align: center;
+    }
+    .category-name {
+      font-size: 17px;
+      font-weight: 600;
+    }
+    .category-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .category-count {
+      min-width: 24px;
+      padding: 0 6px;
+      height: 24px;
+      border-radius: 999px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: .3;
+      transition: opacity 0.15s ease-out;
+    }
+    .category-arrow {
+      font-family: 'Material Symbols Rounded';
+      font-size: 20px;
+      color: var(--muted);
+    }
+
+    /* Nagłówki widoków */
+
+    .view-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .view-header.sticky {
+      position: sticky;
+      top: -20px; /* Przykleja się do samej góry ekranu */
+      margin: -20px -16px 14px -16px; /* Ujemne marginesy wychodzą poza padding screena */
+      padding: 20px 16px 8px 16px;
+      background: #ffffff;
+      z-index: 50;
+      box-shadow: 0 4px 14px rgba(15,23,42,.08);
+    }
+
+    .back-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      border: none;
+      background: #f3f4f6;
+      font-family: 'Material Symbols Rounded';
+      font-size: 28px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color 0.12s ease-out, transform 0.08s ease-out;
+    }
+    .back-btn:active {
+      background: #e5e7eb;
+      transform: scale(0.94);
+    }
+
+    .view-icon {
+      font-family: 'Material Symbols Rounded';
+      font-size: 26px;
+      margin-right: 2px;
+    }
+
+    .view-title {
+      font-size: 28px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .view-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* Zadania */
+
+    .task-item {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, opacity 0.12s ease-out, background 0.12s ease-out, border 0.12s ease-out;
+      will-change: transform, opacity, box-shadow;
+      contain: layout paint;
+    }
+    .task-item.completed { opacity: .55; }
+    .task-item.overdue {
+      background: var(--overdue-bg) !important;
+      border: 2px solid var(--overdue-border) !important;
+      border-radius: 14px !important;
+      box-shadow: 0 2px 8px rgba(159,18,57,.08) !important;
+      padding: 16px 14px !important;
+    }
+    .task-item:active {
+      transform: scale(.98);
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    
+    .task-item.dragging {
+      background: #e5e7eb !important;
+      border: 2px solid #9ca3af !important;
+      border-radius: 14px !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25) !important;
+      transform: scale(1.05) !important;
+      opacity: 0.95 !important;
+      z-index: 1000;
+      cursor: grabbing !important;
+    }
+
+    .task-checkbox {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid #d1d5db;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      align-self: flex-start !important; /* Zmienione z flex-start na center */
+      margin-top: 2px;
+      background: #fff;
+      font-size: 20px;
+      transition: background-color 0.12s ease-out, border-color 0.12s ease-out, transform 0.10s ease-out;
+      will-change: transform, background-color, border-color;
+    }
+    .task-checkbox .icon {
+      font-family: 'Material Symbols Rounded';
+      font-size: 20px;
+      display: none;
+    }
+    .task-checkbox.checked {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    .task-checkbox.checked .icon { display: block; }
+    .task-checkbox.pop {
+      transform: scale(1.18);
+    }
+
+    .task-content { flex: 1; min-width: 0; }
+    
+    .overdue-badge {
+      display: inline-block;
+      background: #fee2e2;
+      color: #dc2626;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+    
+    .task-title {
+      font-size: 17px;
+      font-weight: 600;
+      word-wrap: break-word;
+    }
+    
+    .checklist-counter {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 6px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+    }
+    
+    .checklist-next-task {
+      display: inline-block;
+      margin-left: 4px;
+      padding: 2px 6px;
+      background: #f3f4f6;
+      color: #6b7280;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      font-style: italic;
+    }
+    
+    .task-item.completed .task-title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    
+    /* Notatki i checklisty zawsze widoczne - bez animacji */
+    .task-details {
+      margin-top: 8px;
+    }
+    
+    .task-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .task-tag.type { background: #dbeafe; color: #1d4ed8; }
+
+    .task-notes {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .empty-icon {
+      font-family: 'Material Symbols Rounded';
+      font-size: 52px;
+      opacity: .18;
+      margin-bottom: 10px;
+    }
+
+    /* Checklist view */
+
+    .checklist-view {
+      list-style: none;
+      margin-top: 4px;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      padding: 4px 0;
+    }
+    .checklist-checkbox {
+      /* UPDATE v3.3b: większy przycisk checklisty dla wygodniejszego kliku */
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      min-height: 22px;
+      border-radius: 50%;
+      border: 2px solid #d1d5db;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      cursor: pointer;
+      background: #fff;
+    }
+    .checklist-checkbox span {
+      font-family: 'Material Symbols Rounded';
+      display: none;
+      font-size: 16px;
+    }
+    .checklist-checkbox.checked {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    .checklist-checkbox.checked span { display: block; }
+    .checklist-item.done .checklist-text {
+      text-decoration: line-through;
+      color: #9ca3af;
+    }
+
+    /* Menu ⋮ */
+
+    .task-menu-btn {
+      border: none;
+      background: transparent;
+      font-family: 'Material Symbols Rounded';
+      font-size: 18px;
+      color: var(--muted);
+      padding: 2px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color 0.12s ease-out, transform 0.08s ease-out;
+    }
+    .task-menu-btn:active {
+      background: #f3f4f6;
+      transform: scale(0.9);
+    }
+    
+    .car-suggest-icon-btn {
+      border: none;
+      background: #f9fafb;
+      padding: 6px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.12s ease-out;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-left: 6px;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,.03);
+    }
+    .car-suggest-icon-btn .material-symbols-rounded {
+      font-size: 20px;
+      color: #6b7280; /* Neutralny szary */
+    }
+    .car-suggest-icon-btn .car-icon-small {
+      font-size: 18px;
+    }
+    .car-suggest-icon-btn:active {
+      background: #f3f4f6;
+      transform: scale(0.95);
+    }
+    
+    .car-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      margin-left: 6px;
+      flex-shrink: 0;
+    }
+    .car-badge .material-symbols-rounded {
+      font-size: 20px;
+      color: #6b7280; /* Neutralny szary */
+    }
+
+    .task-menu {
+      position: fixed;
+      min-width: 140px;
+      background: #ffffff;
+      box-shadow: 0 6px 18px rgba(15,23,42,.18);
+      border-radius: 12px;
+      padding: 6px 0;
+      z-index: 1000;
+      display: none;
+    }
+    .task-menu-item {
+      width: 100%;
+      padding: 8px 14px;
+      border: none;
+      background: transparent;
+      text-align: left;
+      font-size: 14px;
+      color: var(--ink);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .task-menu-item span.icon {
+      font-family: 'Material Symbols Rounded';
+      font-size: 18px;
+    }
+    .task-menu-item:hover { background: #f3f4f6; }
+    .task-menu-delete { color: var(--danger); }
+
+    /* FAB */
+
+    .fab {
+      position: fixed;
+      right: max(35px, calc(16px + var(--sar)));
+      bottom: calc(var(--sab) + 65px);
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-family: 'Material Symbols Rounded';
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(37,99,235,.4);
+      cursor: pointer;
+      z-index: 900;
+      transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+      will-change: transform, box-shadow;
+    }
+    
+    /* Responsive FAB dla małych ekranów */
+    @media (max-width: 375px) {
+      .fab {
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+        right: max(20px, calc(12px + var(--sar)));
+        bottom: calc(var(--sab) + 60px);
+      }
+    }
+    
+    /* Responsive FAB dla dużych ekranów/tabletów */
+    @media (min-width: 768px) {
+      .fab {
+        width: 72px;
+        height: 72px;
+        font-size: 36px;
+        right: max(40px, calc(24px + var(--sar)));
+        bottom: calc(var(--sab) + 70px);
+      }
+    }
+    .fab:active {
+      transform: scale(0.94);
+      box-shadow: 0 2px 8px rgba(37,99,235,.25);
+    }
+
+    /* Sheet dodaj/edytuj */
+
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      z-index: 800;
+      padding: 60px 18px 18px 18px;
+    }
+    .sheet-overlay.active { display: flex; }
+
+    .sheet-content {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .sheet-header {
+      padding: 16px 14px 10px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .sheet-title { font-size: 18px; font-weight: 800; }
+    .sheet-close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: #f3f4f6;
+      font-family: 'Material Symbols Rounded';
+      font-size: 18px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .sheet-body { padding: 16px 14px 22px; }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-input,
+    .form-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: none;
+      background: #f9fafb;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-textarea {
+      resize: vertical;
+      min-height: 70px;
+      font-family: inherit;
+    }
+    .form-input:focus,
+    .form-textarea:focus {
+      background: #f3f4f6;
+    }
+
+    .form-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .form-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .checklist-toggle-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      transition: all 0.12s ease;
+    }
+    .checklist-toggle-btn:hover {
+      background: #f3f4f6;
+    }
+    .checklist-toggle-btn span {
+      font-family: 'Material Symbols Rounded';
+      font-size: 20px;
+    }
+    .checklist-toggle-btn.active {
+      color: var(--blue);
+      background: #eff6ff;
+    }
+
+    .checklist-toggle-btn {
+      border: none;
+      background: transparent;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Material Symbols Rounded';
+      font-size: 26px;
+    }
+    .checklist-toggle-btn.active {
+      color: var(--blue);
+      background: #eff6ff;
+    }
+
+    .checklist-editor {
+      display: none;
+      margin-top: 2px;
+    }
+    .checklist-editor.active { display: block; }
+    .checklist-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .checklist-row-toggle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #d1d5db;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .checklist-row-toggle span {
+      font-family: 'Material Symbols Rounded';
+      display: none;
+      font-size: 18px;
+    }
+    .checklist-row-toggle.checked {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    .checklist-row-toggle.checked span { display: block; }
+    .checklist-row-input {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 16px;
+      background: #f9fafb;
+      outline: none;
+    }
+    .checklist-row-remove {
+      border: none;
+      background: transparent;
+      font-family: 'Material Symbols Rounded';
+      font-size: 20px;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      min-width: 32px;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .checklist-row-remove:active {
+      background: #f3f4f6;
+    }
+    .checklist-add-btn {
+      border: none;
+      background: transparent;
+      color: var(--blue);
+      font-size: 15px;
+      padding: 8px 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .checklist-add-btn span {
+      font-family: 'Material Symbols Rounded';
+      font-size: 20px;
+    }
+
+    /* Smart suggestion badge for "W aucie" */
+    .smart-suggestion {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: #fef3c7;
+      border: 1px solid #fbbf24;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .smart-suggestion:active {
+      transform: scale(0.97);
+      background: #fde68a;
+    }
+    .smart-suggestion.show {
+      display: flex;
+    }
+    .smart-suggestion-icon {
+      font-family: 'Material Symbols Rounded';
+      font-size: 16px;
+      color: #f59e0b;
+    }
+
+    .date-options {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .date-option {
+      padding: 10px;
+      border-radius: 10px;
+      background: #f9fafb;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background-color 0.12s ease-out, box-shadow 0.12s ease-out;
+    }
+    .date-option.selected {
+      background: #eff6ff;
+      box-shadow: 0 0 0 2px var(--blue);
+    }
+    .date-option-icon {
+      font-family: 'Material Symbols Rounded';
+      font-size: 22px;
+    }
+    .date-option-title { font-size: 14px; font-weight: 700; }
+    .date-option-sub { font-size: 11px; color: var(--muted); }
+
+    .incar-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: #fff7ed;
+      border: 1px solid #fb923c;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .incar-checkbox:hover {
+      background: #ffedd5;
+    }
+    .incar-checkbox input[type="checkbox"] {
+      display: none;
+    }
+    .incar-checkbox .checkbox-icon {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #f97316;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s ease;
+      font-family: 'Material Symbols Rounded';
+      color: transparent;
+      background: #fff;
+    }
+    .incar-checkbox input[type="checkbox"]:checked + .checkbox-icon {
+      background: #f97316;
+      color: #fff;
+      border-color: #f97316;
+    }
+    .incar-checkbox .checkbox-icon .material-symbols-rounded {
+      font-size: 18px;
+    }
+    .incar-checkbox .checkbox-label {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+      color: #9a3412;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    /* Toast */
+
+    #toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: #111827;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.3);
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      z-index: 1200;
+      transition: transform 0.18s ease-out, opacity 0.18s ease-out;
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Date groups */
+
+    .date-group {
+      padding: 10px 0 8px 6px;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 2px;
+      transition: background-color 0.12s ease-out;
+    }
+    .date-group.today {
+      background: transparent; /* Usunięty szary kolor - niepotrzebny */
+    }
+    .date-header {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .date-header.overdue-header {
+      font-size: 14px;
+      font-weight: 700;
+      color: #dc2626;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      background: #fee2e2;
+      border-radius: 8px;
+    }
+    .date-number {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .date-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .date-group.drop-target {
+      background: #eff6ff !important;
+      border: 2px solid #3b82f6 !important;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
+      border-radius: 12px !important;
+    }
+    
+    /* Drop zones dla widoku Dzisiaj */
+    .today-drop-zone {
+      transition: all 0.2s ease;
+    }
+    .today-drop-zone.drop-active {
+      background: #eff6ff;
+      border: 2px solid #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+      border-radius: 12px;
+    }
+
+    /* Kompakt Nadchodzące / Ten tydzień */
+
+    .task-item.upcoming-compact {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      align-items: center;
+      transform: none;
+      margin-left: 18px;
+    }
+    
+    /* Przeterminowane zadania */
+    .task-item.overdue {
+      background: var(--overdue-bg) !important;
+      border: 1px solid var(--overdue-border) !important;
+      border-radius: 14px !important;
+      box-shadow: 0 2px 8px rgba(159,18,57,.08) !important;
+    }
+    .overdue-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #fff5f5;
+      color: var(--overdue-text);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+    .task-item.upcoming-compact .task-checkbox { align-self: flex-start !important;!important; 
+      width: 28px;
+      height: 28px;
+      min-width: 24px;
+      min-height: 24px;
+      margin-top: 2px;
+      border-width: 2px;
+    }
+    .task-item.upcoming-compact .task-checkbox { align-self: flex-start !important;!important;   }
+
+    .task-item.upcoming-compact .task-checkbox .icon {
+      font-size: 16px;
+    }
+    .task-item.upcoming-compact .task-title {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .task-item.upcoming-compact .task-notes,
+    .task-item.upcoming-compact .task-meta {
+      display: none;
+    }
+
+    .month-header {
+      margin-top: 18px;
+      padding-top: 8px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .upcoming-compact-date {
+      display: inline-block;
+      min-width: 42px;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 12px;
+      margin-right: 4px;
+    }
+
+    /* Delete modal */
+
+    #deleteModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1100;
+      padding: 18px;
+    }
+    #deleteModal.active { display: flex; }
+    .delete-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px 16px 12px;
+      width: 100%;
+      max-width: 320px;
+      box-shadow: 0 10px 30px rgba(15,23,42,.35);
+      transform: scale(0.96);
+      opacity: 0;
+      transition: transform 0.18s ease-out, opacity 0.18s ease-out;
+    }
+    #deleteModal.active .delete-box {
+      transform: scale(1);
+      opacity: 1;
+    }
+    .delete-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .delete-text {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .delete-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .btn-outline {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .btn-danger {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-danger span {
+      font-family: 'Material Symbols Rounded';
+      font-size: 18px;
+    }
+
+    /* Kalendarz popup */
+
+    .calendar-popup {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 900;
+      padding: 18px;
+    }
+    .calendar-popup.active { display: flex; }
+    .calendar-content {
+      background: #111827;
+      border-radius: 16px;
+      padding: 16px;
+      width: 100%;
+      max-width: 340px;
+      color: #f9fafb;
+    }
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .calendar-month-label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .calendar-nav {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: none;
+      background: #374151;
+      color: #e5e7eb;
+      font-family: 'Material Symbols Rounded';
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7,1fr);
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .calendar-day-header {
+      font-size: 9px;
+      text-align: center;
+      color: #9ca3af;
+    }
+    .calendar-day {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      color: #e5e7eb;
+      transition: background-color 0.12s ease-out;
+    }
+    .calendar-day:hover { background: #374151; }
+    .calendar-day.disabled {
+      color: #4b5563;
+      cursor: default;
+    }
+    .calendar-day.disabled:hover { background: transparent; }
+    .calendar-day.selected {
+      background: var(--blue);
+      color: #fff;
+    }
+    .calendar-day.today {
+      border: 1px solid #60a5fa;
+    }
+
+    /* Widok "Dzisiaj" - nowy profesjonalny layout */
+    .today-header-content {
+      flex: 1;
+    }
+    
+    .today-date-display {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    
+    .today-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      margin-bottom: 8px;
+      margin-left: 0; /* Równo z lewej */
+    }
+    
+    .today-section-header.evening {
+      margin-top: 0;
+      padding-top: 0;
+      margin-left: 68px; /* Przesunięcie żeby ikony były w linii z "Dzisiaj" */
+    }
+    
+    .today-section-icon {
+      font-family: 'Material Symbols Rounded';
+      font-size: 26px;
+    }
+    
+    .today-section-label {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--ink);
+    }
+    
+    .today-evening-section {
+      margin-top: 60px; /* Środek widocznej przestrzeni (minus dolny pasek) */
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb; /* Kreska separująca */
+    }
+  
+    /* UPDATE v3.3b: wiersz tytułu zadania + strzałka rozwijania */
+    .task-title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .task-title-row .task-title {
+      /* Usunięte flex: 1 - teraz strzałka i licznik są zaraz za nazwą */
+    }
+
+    /* ==========================================
+       RESPONSIVE MEDIA QUERIES
+       Auto-adjust dla każdego urządzenia
+       ========================================== */
+    
+    /* Małe telefony (iPhone SE, małe Androidy) */
+    @media (max-width: 375px) {
+      .home-date-day { font-size: 18px; }
+      .home-date-full { font-size: 14px; }
+      
+      .category-item {
+        padding: 14px 16px;
+        font-size: 15px;
+      }
+      
+      .task-item {
+        padding: 12px 10px;
+        font-size: 14px;
+      }
+      
+      .date-number { font-size: 24px; }
+      .date-label { font-size: 14px; }
+    }
+    
+    /* Średnie telefony (większość iPhone i Android) */
+    @media (min-width: 376px) and (max-width: 414px) {
+      /* Domyślne wartości - bez zmian */
+    }
+    
+    /* Duże telefony (iPhone Pro Max, duże Androidy) */
+    @media (min-width: 415px) and (max-width: 767px) {
+      .home-date-day { font-size: 22px; }
+      .home-date-full { font-size: 16px; }
+      
+      .category-item {
+        padding: 18px 20px;
+        font-size: 17px;
+      }
+    }
+    
+    /* Tablety i większe ekrany */
+    @media (min-width: 768px) {
+      .home-header {
+        margin-bottom: 32px;
+      }
+      
+      .home-date-day { font-size: 28px; }
+      .home-date-full { font-size: 18px; }
+      
+      .category-list {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      
+      .category-item {
+        padding: 20px 24px;
+        font-size: 18px;
+        border-radius: 14px;
+      }
+      
+      .task-item {
+        padding: 16px 14px;
+        font-size: 16px;
+      }
+      
+      .screen {
+        padding: 32px 24px 32px;
+      }
+    }
+    
+    /* Orientacja pozioma - specjalne dostosowania */
+    @media (orientation: landscape) and (max-height: 500px) {
+      .home-header {
+        margin-bottom: 8px;
+      }
+      
+      .home-date-day { font-size: 16px; }
+      .home-date-full { font-size: 13px; }
+      
+      .category-item {
+        padding: 12px 16px;
+      }
+      
+      .fab {
+        width: 56px;
+        height: 56px;
+        font-size: 26px;
+      }
+    }
+    
+    /* Dark mode support (opcjonalnie) */
+    @media (prefers-color-scheme: dark) {
+      /* Można dodać dark mode w przyszłości */
+    }
+
+
+  </style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="screen" id="homeScreen">
+  <div class="home-header">
+    <div class="home-date-day" id="homeDay"></div>
+    <div class="home-date-full" id="homeDate"></div>
+  </div>
+
+  <div class="category-list">
+    <div class="category-card" onclick="openView('assigned')">
+      <div class="category-left">
+        <span class="category-icon" style="color:#10b981">assignment</span>
+        <span class="category-name">Zadania</span>
+      </div>
+      <div class="category-right">
+        <span class="category-count" id="count-assigned">0</span>
+        <span class="category-arrow">chevron_right</span>
+      </div>
+    </div>
+
+    <div class="category-card" onclick="openView('today')">
+      <div class="category-left">
+        <span class="category-icon" style="color:#f59e0b">star</span>
+        <span class="category-name">Dzisiaj</span>
+      </div>
+      <div class="category-right">
+        <span class="category-count" id="count-today">0</span>
+        <span class="category-arrow">chevron_right</span>
+      </div>
+    </div>
+
+    <div class="category-card" onclick="openView('evening')">
+      <div class="category-left">
+        <span class="category-icon" style="color:#6366f1">nightlight</span>
+        <span class="category-name">Dziś wieczorem</span>
+      </div>
+      <div class="category-right">
+        <span class="category-count" id="count-evening">0</span>
+        <span class="category-arrow">chevron_right</span>
+      </div>
+    </div>
+
+    <div class="category-card" onclick="openView('incar')">
+      <div class="category-left">
+        <span class="category-icon" style="color:#f97316">directions_car</span>
+        <span class="category-name">W aucie</span>
+      </div>
+      <div class="category-right">
+        <span class="category-count" id="count-incar">0</span>
+        <span class="category-arrow">chevron_right</span>
+      </div>
+    </div>
+
+    <div class="category-card" onclick="openView('thisweek')">
+      <div class="category-left">
+        <span class="category-icon" style="color:#8b5cf6">date_range</span>
+        <span class="category-name">Ten tydzień</span>
+      </div>
+      <div class="category-right">
+        <span class="category-count" id="count-thisweek">0</span>
+        <span class="category-arrow">chevron_right</span>
+      </div>
+    </div>
+
+    <div class="category-card" onclick="openView('upcoming')">
+      <div class="category-left">
+        <span class="category-icon" style="color:#ec4899">event</span>
+        <span class="category-name">Nadchodzące</span>
+      </div>
+      <div class="category-right">
+        <span class="category-count" id="count-upcoming">0</span>
+        <span class="category-arrow">chevron_right</span>
+      </div>
+    </div>
+
+    <div class="category-card" onclick="openView('anytime')">
+      <div class="category-left">
+        <span class="category-icon" style="color:#64748b">inventory_2</span>
+        <span class="category-name">Kiedykolwiek</span>
+      </div>
+      <div class="category-right">
+        <span class="category-count" id="count-anytime">0</span>
+        <span class="category-arrow">chevron_right</span>
+      </div>
+    </div>
+
+    <div class="category-card" onclick="openView('history')">
+      <div class="category-left">
+        <span class="category-icon" style="color:#6b7280">history</span>
+        <span class="category-name">Historia</span>
+      </div>
+      <div class="category-right">
+        <span class="category-arrow">chevron_right</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ZADANIA -->
+<div class="screen" id="assignedScreen">
+  <div class="view-header">
+    <button class="back-btn" onclick="goHome()">arrow_back</button>
+    <div class="view-title"><span class="view-icon" style="color:#10b981">assignment</span> Zadania</div>
+  </div>
+  <div id="tasks-assigned"></div>
+</div>
+
+<!-- DZISIAJ -->
+<div class="screen" id="todayScreen">
+  <div class="view-header">
+    <button class="back-btn" onclick="goHome()">arrow_back</button>
+    <div>
+      <div class="view-title">
+        <span class="view-icon" style="color:#f59e0b">star</span> Dzisiaj
+      </div>
+    </div>
+  </div>
+  
+  <div id="tasks-today-main" 
+       class="today-drop-zone"
+       ondragover="onTodayMainDragOver(event)" 
+       ondrop="onTodayMainDrop(event)"
+       ondragleave="onTodayDragLeave(event)"></div>
+  
+  <div class="today-evening-section today-drop-zone"
+       ondragover="onTodayEveningDragOver(event)"
+       ondrop="onTodayEveningDrop(event)"
+       ondragleave="onTodayDragLeave(event)">
+    <div class="today-section-header evening">
+      <span class="today-section-icon" style="color:#6366f1">nightlight</span>
+      <span class="today-section-label">Dziś wieczorem</span>
+    </div>
+    <div id="tasks-today-evening"></div>
+  </div>
+</div>
+
+<!-- DZIŚ WIECZOREM (osobny widok) -->
+<div class="screen" id="eveningScreen">
+  <div class="view-header">
+    <button class="back-btn" onclick="goHome()">arrow_back</button>
+    <div>
+      <div class="view-title"><span class="view-icon" style="color:#6366f1">nightlight</span> Dziś wieczorem</div>
+      <div class="view-subtitle">Po 18:00</div>
+    </div>
+  </div>
+  <div id="tasks-evening"></div>
+</div>
+
+<!-- W AUCIE -->
+<div class="screen" id="incarScreen">
+  <div class="view-header">
+    <button class="back-btn" onclick="goHome()">arrow_back</button>
+    <div>
+      <div class="view-title"><span class="view-icon" style="color:#f97316">directions_car</span> W aucie</div>
+      <div class="view-subtitle">Telefony i kontakty</div>
+    </div>
+  </div>
+  <div id="tasks-incar"></div>
+</div>
+
+<!-- TEN TYDZIEŃ -->
+<div class="screen" id="thisweekScreen">
+  <div class="view-header">
+    <button class="back-btn" onclick="goHome()">arrow_back</button>
+    <div>
+      <div class="view-title"><span class="view-icon" style="color:#8b5cf6">date_range</span> Ten tydzień</div>
+      <div class="view-subtitle" id="thisweek-subtitle"></div>
+    </div>
+  </div>
+  <div id="tasks-thisweek"></div>
+</div>
+
+<!-- NADCHODZĄCE -->
+<div class="screen" id="upcomingScreen">
+  <div class="view-header sticky">
+    <button class="back-btn" onclick="goHome()">arrow_back</button>
+    <div class="view-title">
+      <span class="view-icon" style="color:#ec4899">event</span> Nadchodzące
+    </div>
+  </div>
+  <div id="tasks-upcoming"></div>
+</div>
+
+<!-- KIEDYKOLWIEK -->
+<div class="screen" id="anytimeScreen">
+  <div class="view-header">
+    <button class="back-btn" onclick="goHome()">arrow_back</button>
+    <div>
+      <div class="view-title"><span class="view-icon" style="color:#64748b">inventory_2</span> Kiedykolwiek</div>
+      <div class="view-subtitle">Zadania bez daty</div>
+    </div>
+  </div>
+  <div id="tasks-anytime"></div>
+</div>
+
+<!-- HISTORIA -->
+<div class="screen" id="historyScreen">
+  <div class="view-header">
+    <button class="back-btn" onclick="goHome()">arrow_back</button>
+    <div>
+      <div class="view-title"><span class="view-icon" style="color:#6b7280">history</span> Historia</div>
+      <div class="view-subtitle">Ostatnie 30 dni</div>
+    </div>
+  </div>
+  <div id="tasks-history"></div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddSheet()">add</button>
+
+<!-- SHEET DODAJ/EDYTUJ -->
+<div class="sheet-overlay" id="addSheet" onclick="closeAddSheetIfOverlay(event)">
+  <div class="sheet-content" onclick="event.stopPropagation()">
+    <div class="sheet-header">
+      <div class="sheet-title" id="sheetTitleLabel">Nowe zadanie</div>
+      <button class="sheet-close-btn" onclick="closeAddSheet()">close</button>
+    </div>
+    <div class="sheet-body">
+      <form id="addTaskForm" onsubmit="saveTask(event)">
+        <div class="form-group">
+          <input id="taskTitle" class="form-input" placeholder="Nazwa zadania" required />
+        </div>
+
+        <!-- Hidden notes field to keep JS working -->
+        <textarea id="taskNotes" style="display: none;"></textarea>
+
+        <div class="form-group">
+          <div class="form-label">Kiedy?</div>
+          
+          <!-- Smart suggestion for "W aucie" -->
+          <div class="smart-suggestion" id="smartSuggestion" onclick="acceptSmartSuggestion()">
+            <span class="smart-suggestion-icon">lightbulb</span>
+            <span>Zadanie w aucie?</span>
+          </div>
+          
+          <div class="date-options">
+            <div class="date-option" data-type="DZISIAJ" onclick="selectDate(event,'DZISIAJ')">
+              <span class="date-option-icon" style="color:#f59e0b">star</span>
+              <div>
+                <div class="date-option-title">Dzisiaj</div>
+                <div class="date-option-sub" id="today-label"></div>
+              </div>
+            </div>
+            <div class="date-option" data-type="WIECZOREM" onclick="selectDate(event,'WIECZOREM')">
+              <span class="date-option-icon" style="color:#6366f1">nightlight</span>
+              <div>
+                <div class="date-option-title">Dziś wieczorem</div>
+                <div class="date-option-sub">Po 18:00</div>
+              </div>
+            </div>
+            <div class="date-option" data-type="W_AUCIE" onclick="selectDate(event,'W_AUCIE')">
+              <span class="date-option-icon" style="color:#f97316">directions_car</span>
+              <div>
+                <div class="date-option-title">W aucie</div>
+                <div class="date-option-sub">Telefony i kontakty</div>
+              </div>
+            </div>
+            <div class="date-option selected" data-type="KIEDYKOLWIEK" onclick="selectDate(event,'KIEDYKOLWIEK')">
+              <span class="date-option-icon" style="color:#64748b">inventory_2</span>
+              <div>
+                <div class="date-option-title">Kiedykolwiek</div>
+                <div class="date-option-sub">Bez konkretnej daty</div>
+              </div>
+            </div>
+            <div class="date-option" data-type="CUSTOM" onclick="selectDate(event,'CUSTOM')">
+              <span class="date-option-icon" style="color:#ec4899">event</span>
+              <div>
+                <div class="date-option-title">Konkretny dzień</div>
+                <div class="date-option-sub" id="custom-label">Wybierz z kalendarza</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn">Zapisz</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- KALENDARZ POPUP -->
+<div class="calendar-popup" id="calendarPopup" onclick="calendarOverlayClick(event)">
+  <div class="calendar-content" onclick="event.stopPropagation()">
+    <div class="calendar-header">
+      <button class="calendar-nav" onclick="changeMonth(-1)">chevron_left</button>
+      <div class="calendar-month-label" id="calendarMonth"></div>
+      <button class="calendar-nav" onclick="changeMonth(1)">chevron_right</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+</div>
+
+<!-- MENU ⋮ -->
+<div class="task-menu" id="taskMenu">
+  <button class="task-menu-item" onclick="startEditTask()">
+    <span class="icon material-symbols-rounded">edit</span> Edytuj
+  </button>
+  <button class="task-menu-item" onclick="moveTaskToCalendar()">
+    <span class="icon material-symbols-rounded">event</span> Zmień datę
+  </button>
+  <button class="task-menu-item task-menu-delete" onclick="openDeleteModalFromMenu()">
+    <span class="icon material-symbols-rounded">delete</span> Usuń
+  </button>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="deleteModal" onclick="closeDeleteModalByBg(event)">
+  <div class="delete-box" onclick="event.stopPropagation()">
+    <div class="delete-title">Usunąć zadanie?</div>
+    <div class="delete-text">Tej operacji nie można cofnąć.</div>
+    <div class="delete-actions">
+      <button class="btn-outline" onclick="closeDeleteModal()">Anuluj</button>
+      <button class="btn-danger" onclick="confirmDeleteModal()">
+        <span class="material-symbols-rounded">delete</span> Usuń
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzLIrnwgFgJ2Q_gIHpO5O3YE0uu7gAxrRGAW0rnkBD-pB_c5vcIMJCEW-KHs0G2g6Zz/exec';
+  let currentUser = localStorage.getItem('currentUser') || 'TEST_USER';
+
+  let allTasks = [];
+  let selectedDateOption = 'KIEDYKOLWIEK';
+  let selectedCustomDate = null;
+  let calendarDate = new Date();
+  let editingTaskId = null;
+  let draggedTaskId = null;
+  let taskMenuTaskId = null;
+  let pendingDeleteTaskId = null;
+  let currentScreenId = 'homeScreen';
+  let isAnimating = false;
+
+  const $ = id => document.getElementById(id);
+
+  function formatLocalISO(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  const todayISO = () => formatLocalISO(new Date());
+
+  const formatFullDate = d =>
+    new Date(d).toLocaleDateString('pl-PL', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+  const formatShortDate = d =>
+    new Date(d).toLocaleDateString('pl-PL', { day:'numeric', month:'long' });
+
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  const uuid = () =>
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
+      return v.toString(16);
+    });
+
+  async function callAPI(action, params = {}) {
+    try {
+      const url = new URL(API_URL);
+      url.searchParams.append('action', action);
+      Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Network');
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
+
+  function saveTasks() {
+    localStorage.setItem('tasks_' + currentUser, JSON.stringify(allTasks));
+  }
+  function loadTasks() {
+    const s = localStorage.getItem('tasks_' + currentUser);
+    if (s) {
+      allTasks = JSON.parse(s);
+      // Sprawdź czy są jakieś aktywne zadania
+      const activeTasks = allTasks.filter(t => t.status === 'DO_ZROBIENIA');
+      if (activeTasks.length === 0) {
+        // Brak aktywnych zadań - załaduj przykładowe
+        loadSampleTasks();
+      }
+    } else {
+      // Brak zapisanych zadań - załaduj przykładowe
+      loadSampleTasks();
+    }
+  }
+  
+  function loadSampleTasks() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    allTasks = [
+        {
+          id: uuid(),
+          type: 'OSOBISTE',
+          taskType: 'OSOBISTE',
+          createdBy: currentUser,
+          forWho: currentUser,
+          title: 'Przeterminowane zadanie',
+          notes: '',
+          date: formatLocalISO(yesterday),
+          status: 'DO_ZROBIENIA',
+          completedBy: '',
+          completedAt: ''
+        },
+        {
+          id: uuid(),
+          type: 'OSOBISTE',
+          taskType: 'OSOBISTE',
+          createdBy: currentUser,
+          forWho: currentUser,
+          title: 'Zadanie z checklistą',
+          notes: '- [ ] Pierwszy subtask\n- [x] Drugi subtask (wykonany)\n- [ ] Trzeci subtask\n- [ ] Czwarty subtask\n- [ ] Piąty subtask',
+          date: 'DZISIAJ',
+          status: 'DO_ZROBIENIA',
+          completedBy: '',
+          completedAt: ''
+        },
+        {
+          id: uuid(),
+          type: 'OSOBISTE',
+          taskType: 'OSOBISTE',
+          createdBy: currentUser,
+          forWho: currentUser,
+          title: 'Zwykłe zadanie na dziś',
+          notes: '',
+          date: 'DZISIAJ',
+          status: 'DO_ZROBIENIA',
+          completedBy: '',
+          completedAt: ''
+        },
+        {
+          id: uuid(),
+          type: 'OSOBISTE',
+          taskType: 'OSOBISTE',
+          createdBy: currentUser,
+          forWho: currentUser,
+          title: 'Zadanie na dziś wieczorem',
+          notes: '',
+          date: 'WIECZOREM',
+          status: 'DO_ZROBIENIA',
+          completedBy: '',
+          completedAt: ''
+        },
+        {
+          id: uuid(),
+          type: 'OSOBISTE',
+          taskType: 'OSOBISTE',
+          createdBy: currentUser,
+          forWho: currentUser,
+          title: 'Zadzwonić do klienta',
+          notes: '',
+          date: 'W_AUCIE',
+          inCar: true,
+          status: 'DO_ZROBIENIA',
+          completedBy: '',
+          completedAt: ''
+        },
+        {
+          id: uuid(),
+          type: 'OSOBISTE',
+          taskType: 'OSOBISTE',
+          createdBy: currentUser,
+          forWho: currentUser,
+          title: 'Zadanie na przyszły tydzień',
+          notes: '',
+          date: formatLocalISO(nextWeek),
+          status: 'DO_ZROBIENIA',
+          completedBy: '',
+          completedAt: ''
+        },
+        {
+          id: uuid(),
+          type: 'OSOBISTE',
+          taskType: 'OSOBISTE',
+          createdBy: currentUser,
+          forWho: currentUser,
+          title: 'Zadanie bez daty',
+          notes: '',
+          date: 'KIEDYKOLWIEK',
+          status: 'DO_ZROBIENIA',
+          completedBy: '',
+          completedAt: ''
+        }
+      ];
+      saveTasks();
+  }
+  
+  function loadSampleTasksManual() {
+    if (confirm('Czy na pewno chcesz załadować zadania testowe? Usunie to wszystkie obecne zadania.')) {
+      loadSampleTasks();
+      updateCounts();
+      toast('Załadowano zadania testowe');
+    }
+  }
+
+  async function syncTasks() {
+    const res = await callAPI('getTasks', { handlowiec: currentUser });
+    if (res && res.status === 'ok' && Array.isArray(res.data)) {
+      allTasks = allTasks.filter(t => t.type !== 'ZLECONE');
+      res.data.forEach(r => {
+        allTasks.push({
+          id: r.ID,
+          type: 'ZLECONE',
+          taskType: r.TYP,
+          createdBy: r.UTWORZYŁ,
+          forWho: r.DLA_KOGO,
+          title: r.ZADANIE,
+          notes: r.NOTATKI || '',
+          date: r.DATA,
+          status: r.STATUS,
+          completedBy: r.KTO_WYKONAŁ || '',
+          completedAt: r.DATA_WYKONANIA || ''
+        });
+      });
+      saveTasks();
+    }
+    updateCounts();
+    const active = document.querySelector('.screen.active');
+    if (active && active.id !== 'homeScreen') {
+      renderView(active.id.replace('Screen',''));
+    }
+  }
+
+  function normalizeDateForTodayLike(val, todayStr) {
+    if (val === 'DZISIAJ' || val === 'WIECZOREM') return todayStr;
+    if (val === 'W_AUCIE' || val === 'KIEDYKOLWIEK') return null;
+    return val;
+  }
+
+  function updateCounts() {
+    const today = todayISO();
+    const endOfWeek = (() => {
+      const d = new Date();
+      const day = d.getDay() || 7;
+      d.setDate(d.getDate() + (7 - day));
+      return formatLocalISO(d);
+    })();
+    const endOfMonth = (() => {
+      const d = new Date();
+      const e = new Date(d.getFullYear(), d.getMonth()+1, 0);
+      return formatLocalISO(e);
+    })();
+
+    const counts = {
+      assigned: allTasks.filter(t => t.type === 'ZLECONE' && t.status === 'DO_ZROBIENIA').length,
+      today: allTasks.filter(t => {
+        if (t.status !== 'DO_ZROBIENIA') return false;
+        if (!t.date) return false;
+        const real = normalizeDateForTodayLike(t.date, today);
+        return real === today;
+      }).length,
+      evening: allTasks.filter(t => t.status === 'DO_ZROBIENIA' && t.date === 'WIECZOREM').length,
+      incar: allTasks.filter(t => t.status === 'DO_ZROBIENIA' && t.inCar === true).length,
+      thisweek: allTasks.filter(t => {
+        if (t.status !== 'DO_ZROBIENIA') return false;
+        if (!t.date || t.date === 'KIEDYKOLWIEK') return false;
+        const real = normalizeDateForTodayLike(t.date, today);
+        return real >= today && real <= endOfWeek;
+      }).length,
+      upcoming: allTasks.filter(t => {
+        if (t.status !== 'DO_ZROBIENIA') return false;
+        if (!t.date || t.date === 'KIEDYKOLWIEK') return false;
+        const real = normalizeDateForTodayLike(t.date, today);
+        return real >= today && real <= endOfMonth;
+      }).length,
+      anytime: allTasks.filter(t => t.status === 'DO_ZROBIENIA' && t.date === 'KIEDYKOLWIEK').length
+    };
+
+    for (const k in counts) {
+      const el = $('count-' + k);
+      if (!el) continue;
+      el.textContent = counts[k];
+      el.style.opacity = counts[k] ? '1' : '.3';
+    }
+  }
+
+  /* Nawigacja */
+
+  function openView(view) {
+    if (isAnimating) return;
+    const targetId = view + 'Screen';
+    if (targetId === currentScreenId) return;
+
+    const current = $(currentScreenId);
+    const next = $(targetId);
+    if (!next || !current) return;
+
+    isAnimating = true;
+
+    next.classList.add('active');
+    next.style.pointerEvents = 'auto';
+    next.style.pointerEvents = 'auto';
+    next.style.transform = 'translateX(100%)';
+    next.style.opacity = '0';
+
+    renderView(view);
+
+    requestAnimationFrame(() => {
+      next.style.transform = 'translateX(0)';
+      next.style.opacity = '1';
+
+      current.style.transform = 'translateX(-20%)';
+      current.style.opacity = '0';
+      current.style.pointerEvents = 'none';
+
+      const onEnd = (e) => {
+        if (e.target !== next) return;
+        next.removeEventListener('transitionend', onEnd);
+
+        current.classList.remove('active');
+        current.style.transform = 'translateX(100%)';
+        current.style.opacity = '0';
+
+        currentScreenId = targetId;
+        isAnimating = false;
+      };
+      next.addEventListener('transitionend', onEnd);
+    /* SAFETY_FALLBACK */ setTimeout(() => { try { if (isAnimating) { current.classList.remove('active'); current.style.transform='translateX(100%)'; current.style.opacity='0'; current.style.pointerEvents='none'; next.style.transform='translateX(0)'; next.style.opacity='1'; next.style.pointerEvents='auto'; currentScreenId = targetId; isAnimating=false; } } catch(e){} }, 400);
+    });
+  }
+
+  function goHome() {
+    if (isAnimating) return;
+    if (currentScreenId === 'homeScreen') return;
+
+    const current = $(currentScreenId);
+    const home = $('homeScreen');
+    if (!current || !home) return;
+
+    isAnimating = true;
+
+    home.classList.add('active');
+    home.style.pointerEvents = 'auto';
+    home.style.transform = 'translateX(-20%)';
+    home.style.opacity = '0';
+
+    requestAnimationFrame(() => {
+      home.style.transform = 'translateX(0)';
+      home.style.opacity = '1';
+
+      current.style.transform = 'translateX(100%)';
+      current.style.opacity = '0';
+      current.style.pointerEvents = 'none';
+
+      const onEnd = (e) => {
+        if (e.target !== home) return;
+        home.removeEventListener('transitionend', onEnd);
+
+        current.classList.remove('active');
+        currentScreenId = 'homeScreen';
+        updateCounts();
+        isAnimating = false;
+      };
+      home.addEventListener('transitionend', onEnd);
+    });
+  }
+
+  /* Render */
+
+  function emptyHtml() {
+    return '<div class="empty-state"><div class="empty-icon">event</div>Brak zadań</div>';
+  }
+
+  function renderView(view) {
+    if (view === 'history') return renderHistory();
+    if (view === 'thisweek') return renderThisWeek();
+    if (view === 'upcoming') return renderUpcoming();
+    if (view === 'today') return renderTodayView();
+
+    const c = $('tasks-' + view);
+    if (!c) return;
+
+    const today = todayISO();
+    let list = [];
+
+    switch(view) {
+      case 'assigned':
+        list = allTasks.filter(t => t.type === 'ZLECONE' && t.status === 'DO_ZROBIENIA');
+        break;
+      case 'evening':
+        list = allTasks.filter(t => t.status === 'DO_ZROBIENIA' && t.date === 'WIECZOREM');
+        break;
+      case 'incar':
+        list = allTasks.filter(t => t.status === 'DO_ZROBIENIA' && t.inCar === true);
+        break;
+      case 'anytime':
+        list = allTasks.filter(t => t.status === 'DO_ZROBIENIA' && t.date === 'KIEDYKOLWIEK');
+        break;
+    }
+
+    if (!list.length) {
+      c.innerHTML = emptyHtml();
+    } else {
+      c.innerHTML = list.map(t => renderTask(t, false, false)).join('');
+    }
+  }
+
+  function renderHistory() {
+    const c = $('tasks-history');
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+    const sinceStr = formatLocalISO(since);
+
+    const list = allTasks.filter(t => {
+      if (t.status !== 'WYKONANE') return false;
+      const when = t.completedAt || t.date;
+      if (!when) return false;
+      const d = new Date(when);
+      if (isNaN(d)) return false;
+      const iso = formatLocalISO(d);
+      return iso >= sinceStr;
+    });
+
+    if (!list.length) {
+      c.innerHTML = emptyHtml();
+      return;
+    }
+    c.innerHTML = list.map(t => renderTask(t, false, true)).join('');
+  }
+
+  function renderTodayView() {
+    const today = todayISO();
+    const mainC = $('tasks-today-main');
+    const eveC = $('tasks-today-evening');
+
+    // Przeterminowane zadania (data < dzisiaj)
+    const overdueTasks = allTasks.filter(t => {
+      if (t.status !== 'DO_ZROBIENIA') return false;
+      if (!t.date) return false;
+      if (t.date === 'DZISIAJ' || t.date === 'WIECZOREM' || t.date === 'W_AUCIE' || t.date === 'KIEDYKOLWIEK') return false;
+      return t.date < today;
+    });
+
+    // Zadania na dzisiaj
+    const todayTasks = allTasks.filter(t => {
+      if (t.status !== 'DO_ZROBIENIA') return false;
+      if (!t.date) return false;
+      const real = normalizeDateForTodayLike(t.date, today);
+      return real === today && t.date !== 'WIECZOREM';
+    });
+
+    const eveningTasks = allTasks.filter(t => {
+      if (t.status !== 'DO_ZROBIENIA') return false;
+      return t.date === 'WIECZOREM';
+    });
+
+    let html = '';
+    
+    // Najpierw przeterminowane (na górze)
+    if (overdueTasks.length) {
+      overdueTasks.forEach(t => {
+        html += renderTask(t, true, false, true);
+      });
+    }
+    
+    // Potem normalne zadania na dzisiaj
+    if (todayTasks.length) {
+      todayTasks.forEach(t => {
+        html += renderTask(t, true, false);
+      });
+    }
+    
+    mainC.innerHTML = html || emptyHtml();
+
+    eveC.innerHTML = eveningTasks.length
+      ? eveningTasks.map(t => renderTask(t, true, false)).join('')
+      : '<div class="empty-state"><div class="empty-icon">event</div>Brak zadań</div>';
+  }
+
+  function renderThisWeek() {
+    const container = $('tasks-thisweek');
+    const today = new Date();
+    const todayStr = todayISO();
+    const day = today.getDay() || 7;
+    const end = new Date(today);
+    end.setDate(today.getDate() + (7 - day));
+
+    let html = '';
+    
+    // Najpierw przeterminowane zadania (data < dzisiaj)
+    const overdueTasks = allTasks.filter(t => {
+      if (t.status !== 'DO_ZROBIENIA') return false;
+      if (!t.date) return false;
+      if (t.date === 'DZISIAJ' || t.date === 'WIECZOREM' || t.date === 'W_AUCIE' || t.date === 'KIEDYKOLWIEK') return false;
+      return t.date < todayStr;
+    });
+    
+    if (overdueTasks.length) {
+      overdueTasks.forEach(t => { html += renderTask(t, true, false, true); });
+    }
+    
+    let d = new Date(today);
+
+    while (formatLocalISO(d) <= formatLocalISO(end)) {
+      const dateStr = formatLocalISO(d);
+
+      const tasksForDay = allTasks.filter(t => {
+        if (t.status !== 'DO_ZROBIENIA') return false;
+        if (!t.date || t.date === 'KIEDYKOLWIEK') return false;
+        const real = normalizeDateForTodayLike(t.date, todayStr);
+        return real === dateStr;
+      });
+
+      html += dateHeaderHtml(dateStr, dateStr === todayStr);
+      tasksForDay.forEach(t => { html += renderTask(t, true, false); });
+      html += '</div>';
+
+      d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    }
+
+    container.innerHTML = html || emptyHtml();
+  }
+
+  function renderUpcoming() {
+    const container = $('tasks-upcoming');
+    const today = new Date();
+    const todayStr = todayISO();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const endOfMonthDate = new Date(year, month + 1, 0);
+    const endOfMonthStr = formatLocalISO(endOfMonthDate);
+
+    let html = '';
+    
+    // Najpierw przeterminowane zadania (data < dzisiaj)
+    const overdueTasks = allTasks.filter(t => {
+      if (t.status !== 'DO_ZROBIENIA') return false;
+      if (!t.date) return false;
+      if (t.date === 'DZISIAJ' || t.date === 'WIECZOREM' || t.date === 'W_AUCIE' || t.date === 'KIEDYKOLWIEK') return false;
+      return t.date < todayStr;
+    });
+    
+    if (overdueTasks.length) {
+      overdueTasks.forEach(t => { html += renderTask(t, true, false, true); });
+    }
+
+    let d = new Date(today);
+    while (formatLocalISO(d) <= endOfMonthStr) {
+      const dateStr = formatLocalISO(d);
+
+      const tasksForDay = allTasks.filter(t => {
+        if (t.status !== 'DO_ZROBIENIA') return false;
+        if (!t.date || t.date === 'KIEDYKOLWIEK') return false;
+        if (t.date === 'W_AUCIE' || t.inCar) return false;
+        const real = normalizeDateForTodayLike(t.date, todayStr);
+        return real === dateStr;
+      });
+
+      html += dateHeaderHtml(dateStr, dateStr === todayStr);
+      tasksForDay.forEach(t => { html += renderTask(t, true, false); });
+      html += '</div>';
+
+      d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    }
+
+    const future = [];
+    allTasks.forEach(t => {
+      if (t.status !== 'DO_ZROBIENIA') return;
+      if (!t.date || t.date === 'KIEDYKOLWIEK') return;
+      if (t.date === 'W_AUCIE' || t.inCar) return;
+      const real = normalizeDateForTodayLike(t.date, todayStr);
+      if (real > endOfMonthStr) future.push({ ...t, realDate: real });
+    });
+
+    if (future.length) {
+      const months = {};
+      future.forEach(t => {
+        const key = t.realDate.slice(0,7);
+        if (!months[key]) months[key] = [];
+        months[key].push(t);
+      });
+
+      Object.keys(months).sort().forEach(key => {
+        const [y,m] = key.split('-');
+        const labelDate = new Date(parseInt(y,10), parseInt(m,10)-1, 1);
+        let label = labelDate.toLocaleDateString('pl-PL', { month:'long' });
+        label = label.charAt(0).toUpperCase() + label.slice(1);
+        html += '<div class="month-header">' + label + '</div>';
+
+        months[key]
+          .sort((a,b) => a.realDate.localeCompare(b.realDate))
+          .forEach(t => {
+            const isPersonal = t.type === 'OSOBISTE';
+            const isCompleted = t.status === 'WYKONANE';
+            const isOverdue = !isCompleted && t.realDate < todayISO();
+            const draggable =
+              (isPersonal && !isCompleted)
+                ? 'draggable="true" ondragstart="onTaskDragStart(event,\'' + t.id + '\')"' : '';
+            const checkboxClass = 'task-checkbox ' + (isCompleted ? 'checked' : '');
+            const menuBtn = isPersonal
+              ? '<button class="task-menu-btn" onclick="openTaskMenu(event,\'' + t.id + '\')">more_vert</button>'
+              : '';
+            const dd = t.realDate.slice(8,10);
+            const mm = t.realDate.slice(5,7);
+            const dateLabel = dd + '.' + mm;
+            const notesHtml = renderNotes(t, false);
+            const hasDetails = !!notesHtml;
+            const titleWithArrow = '<div class="task-title-row"><div class="task-title">' + (t.title || '') + '</div>' +
+              (hasDetails ? '' : '') +
+            '</div>';
+        
+
+            html +=
+              '<div class="task-item upcoming-compact ' + (isCompleted ? 'completed' : '') + (isOverdue ? ' overdue' : '') + '" data-id="' + t.id + '" ' + draggable + '>' +
+                '<div class="' + checkboxClass + '"' +
+                  ' onclick="event.stopPropagation();toggleTask(\'' + t.id + '\')">' +
+                  '<span class="icon">check</span>' +
+                '</div>' +
+                '<div class="task-content" onclick="onTaskClick(\'' + t.id + '\')">' +
+                  '<div class="task-title"><span class="upcoming-compact-date">' + dateLabel + '</span>' +
+                    (t.title || '') + '</div>' +
+                '</div>' +
+                menuBtn +
+              '</div>';
+          });
+      });
+    }
+
+    container.innerHTML = html || emptyHtml();
+  }
+
+  function dateHeaderHtml(dateStr, isToday) {
+    const d = new Date(dateStr);
+    const dayNum = d.getDate();
+    const weekday = d.toLocaleDateString('pl-PL', { weekday: 'long' });
+    return (
+      '<div class="date-group' + (isToday ? ' today' : '') + '" ' +
+      'data-date="' + dateStr + '" ' +
+      'ondragover="onDateDragOver(event)" ' +
+      'ondrop="onDateDrop(event,\'' + dateStr + '\')">' +
+        '<div class="date-header">' +
+          '<div class="date-number">' + dayNum + '</div>' +
+          '<div class="date-label">' + weekday.charAt(0).toUpperCase() + weekday.slice(1) + '</div>' +
+        '</div>'
+    );
+  }
+
+  function renderTask(task, inUpcoming=false, inHistory=false, isOverdue=false) {
+    const isCompleted = task.status === 'WYKONANE';
+    const isPersonal = task.type === 'OSOBISTE';
+    const isGroup = task.taskType === 'GRUPOWE';
+    
+    // Obliczamy ile dni przeterminowane
+    let overdueInfo = '';
+    if (isOverdue && !isCompleted) {
+      const today = new Date(todayISO());
+      const taskDate = new Date(task.date);
+      const diffDays = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+      overdueInfo = `<span class="overdue-badge">⚠️ Przeterminowane o ${diffDays} ${diffDays === 1 ? 'dzień' : diffDays < 5 ? 'dni' : 'dni'}</span>`;
+    }
+
+    let historyInfo = '';
+    if (inHistory) {
+      const when = task.completedAt || task.date;
+      if (when) {
+        const d = new Date(when);
+        historyInfo = !isNaN(d) ? ('🗓️ Wykonano: ' + formatFullDate(d)) : ('🗓️ Wykonano: ' + when);
+      }
+    }
+
+    if (inUpcoming) {
+      const draggable =
+        (isPersonal && !isCompleted)
+          ? 'draggable="true" ondragstart="onTaskDragStart(event,\'' + task.id + '\')"' : '';
+      const checkboxClass = 'task-checkbox ' + (isCompleted ? 'checked' : '');
+      const menuBtn = isPersonal
+        ? '<button class="task-menu-btn" onclick="openTaskMenu(event,\'' + task.id + '\')">more_vert</button>'
+        : '';
+      
+      // Ikonka "W aucie" - teraz po prawej stronie
+      let carIcon = '';
+      if (taskHasCarKeyword(task) && !task.inCar) {
+        // Zadanie z telefonem ale NIE w aucie - pokaż [+ 🚗] (dodaj do auta)
+        carIcon = '<button class="car-suggest-icon-btn" onclick="event.stopPropagation();moveToInCar(\'' + task.id + '\')" title="Dodaj do: W aucie"><span class="material-symbols-rounded">add</span><span class="material-symbols-rounded car-icon-small">directions_car</span></button>';
+      } else if (task.inCar) {
+        // Zadanie JUŻ w aucie - pokaż tylko [🚗] (informacyjna, już jest w aucie)
+        carIcon = '<span class="car-badge" title="W aucie"><span class="material-symbols-rounded">directions_car</span></span>';
+      }
+      
+      // Notatki i strzałka w compact mode
+      const notesHtml = renderNotes(task, false);
+      const hasDetails = !!notesHtml;
+      
+      let titleHtml = '<div class="task-title-row">' +
+        '<div class="task-title">' + (task.title || '') + '</div></div>';
+      
+      let detailsHtml = '';
+      if (hasDetails) {
+        detailsHtml = '<div class="task-details" data-details-for="' + task.id + '">' + notesHtml + '</div>';
+      }
+      
+      return '' +
+        '<div class="task-item upcoming-compact ' + (isCompleted ? 'completed' : '') + (isOverdue ? ' overdue' : '') + '" data-id="' + task.id + '" ' + draggable + '>' +
+          '<div class="' + checkboxClass + '"' +
+            ' onclick="event.stopPropagation();toggleTask(\'' + task.id + '\')">' +
+            '<span class="icon">check</span>' +
+          '</div>' +
+          '<div class="task-content" onclick="onTaskClick(\'' + task.id + '\')">' +
+            titleHtml +
+            detailsHtml +
+          '</div>' +
+          carIcon +
+          menuBtn +
+        '</div>';
+    }
+
+    let tags = '';
+    if (!inHistory && task.type === 'ZLECONE') {
+      tags += '<span class="task-tag type">' + (isGroup ? 'GRUPOWE' : 'INDYWIDUALNE') + '</span>';
+    }
+
+    const menuBtn = isPersonal
+      ? '<button class="task-menu-btn" onclick="openTaskMenu(event,\'' + task.id + '\')">more_vert</button>'
+      : '';
+
+    const notesHtml = renderNotes(task, inHistory);
+
+    const hasDetails = !!(historyInfo || notesHtml);
+
+    let titleRowHtml = '<div class="task-title-row">' +
+      '<div class="task-title">' + (task.title || '') + '</div></div>';
+
+    let detailsHtml = '';
+    if (hasDetails) {
+      detailsHtml += '<div class="task-details" data-details-for="' + task.id + '">';
+      if (historyInfo) {
+        detailsHtml += '<div class="task-notes">' + historyInfo + '</div>';
+      }
+      if (notesHtml) {
+        detailsHtml += notesHtml;
+      }
+      detailsHtml += '</div>';
+    }
+
+    return '' +
+      '<div class="task-item ' + (isCompleted ? 'completed' : '') + (isOverdue ? ' overdue' : '') + '" data-id="' + task.id + '">' +
+        '<div class="task-checkbox ' + (isCompleted ? 'checked' : '') + '"' +
+          ' onclick="event.stopPropagation();toggleTask(\'' + task.id + '\')">' +
+          '<span class="icon">check</span>' +
+        '</div>' +
+        '<div class="task-content" onclick="onTaskClick(\'' + task.id + '\')">' +
+          (overdueInfo ? overdueInfo : '') +
+          titleRowHtml +
+          (tags ? '<div class="task-meta">' + tags + '</div>' : '') +
+          detailsHtml +
+        '</div>' +
+        menuBtn +
+      '</div>';
+  }
+
+  function renderNotes(task, inHistory) {
+    if (!task.notes) return '';
+    return '<div class="task-notes">' + task.notes.replace(/\n/g, '<br>') + '</div>';
+  }
+  
+  function onTaskClick(id) {
+    // Kliknięcie na zadanie nic nie robi
+    return;
+  }
+
+  /* Checkbox animacja + logika */
+
+  function animateCheckboxById(id) {
+    const el = document.querySelector('.task-item[data-id="'+id+'"] .task-checkbox');
+    if (!el) return;
+    el.classList.add('pop');
+    setTimeout(() => el.classList.remove('pop'), 120);
+  }
+
+  function toggleTask(id) {
+    const t = allTasks.find(x => x.id === id);
+    if (!t) return;
+
+    const wasTodo = t.status === 'DO_ZROBIENIA';
+
+    if (wasTodo) {
+      t.status = 'WYKONANE';
+      t.completedBy = currentUser;
+      t.completedAt = new Date().toISOString();
+      
+      if (t.type === 'ZLECONE') {
+        callAPI('updateTask', {
+          id: t.id,
+          status: 'WYKONANE',
+          who: currentUser,
+          when: t.completedAt
+        });
+      }
+      toast('Oznaczono jako wykonane');
+    } else {
+      if (t.type === 'OSOBISTE') {
+        t.status = 'DO_ZROBIENIA';
+        t.completedBy = '';
+        t.completedAt = '';
+        toast('Przywrócono zadanie');
+      } else {
+        toast('To zadanie z biura. Status zmienia biuro.');
+      }
+    }
+
+    saveTasks();
+    updateCounts();
+
+    const active = document.querySelector('.screen.active');
+    if (active && active.id !== 'homeScreen') {
+      const view = active.id.replace('Screen','');
+      renderView(view);
+      if (wasTodo) animateCheckboxById(id);
+    } else {
+      if (wasTodo) animateCheckboxById(id);
+    }
+  }
+
+  /* DRAG & DROP */
+
+  function onTaskDragStart(e, id) {
+    const t = allTasks.find(x => x.id === id);
+    if (!t || t.type !== 'OSOBISTE' || t.status !== 'DO_ZROBIENIA') {
+      e.preventDefault();
+      return;
+    }
+    draggedTaskId = id;
+
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', id);
+
+      // Tworzę pełny kafelek jako ghost image
+      const ghost = document.createElement('div');
+      ghost.style.position = 'fixed';
+      ghost.style.top = '-999px';
+      ghost.style.left = '-999px';
+      ghost.style.padding = '14px 12px';
+      ghost.style.borderRadius = '14px';
+      ghost.style.background = '#e5e7eb';
+      ghost.style.border = '2px solid #9ca3af';
+      ghost.style.boxShadow = '0 8px 24px rgba(0,0,0,.25)';
+      ghost.style.fontSize = '15px';
+      ghost.style.fontWeight = '400';
+      ghost.style.color = '#111827';
+      ghost.style.display = 'flex';
+      ghost.style.alignItems = 'center';
+      ghost.style.gap = '10px';
+      ghost.style.minWidth = '350px';
+      ghost.style.maxWidth = '500px';
+      
+      // Dodaj checkbox
+      const checkbox = document.createElement('div');
+      checkbox.style.width = '28px';
+      checkbox.style.height = '28px';
+      checkbox.style.borderRadius = '50%';
+      checkbox.style.border = '3px solid #d1d5db';
+      checkbox.style.background = '#fff';
+      checkbox.style.flexShrink = '0';
+      ghost.appendChild(checkbox);
+      
+      // Dodaj tekst zadania
+      const text = document.createElement('div');
+      text.style.flex = '1';
+      text.textContent = t.title || 'Zadanie';
+      ghost.appendChild(text);
+      
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 20, 20);
+      setTimeout(() => document.body.removeChild(ghost), 0);
+    }
+  }
+
+  function onDateDragOver(e) {
+    if (!draggedTaskId) return;
+    e.preventDefault();
+    document.querySelectorAll('.date-group.drop-target')
+      .forEach(el => el.classList.remove('drop-target'));
+    e.currentTarget.classList.add('drop-target');
+  }
+
+  function onDateDrop(e, dateStr) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drop-target');
+
+    const id = draggedTaskId || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+    draggedTaskId = null;
+    if (!id) return;
+
+    const t = allTasks.find(x => x.id === id);
+    if (!t || t.type !== 'OSOBISTE') return;
+
+    t.date = dateStr;
+    saveTasks();
+    updateCounts();
+
+    if ($('upcomingScreen').classList.contains('active')) renderUpcoming();
+    if ($('thisweekScreen').classList.contains('active')) renderThisWeek();
+
+    toast('Przeniesiono na ' + formatShortDate(dateStr));
+  }
+
+  document.addEventListener('dragend', () => {
+    draggedTaskId = null;
+    document.querySelectorAll('.date-group.drop-target')
+      .forEach(el => el.classList.remove('drop-target'));
+    // Czyść drop-active z drop zones w Dzisiaj
+    document.querySelectorAll('.today-drop-zone.drop-active')
+      .forEach(el => el.classList.remove('drop-active'));
+  });
+
+  // Drag & drop dla widoku "Dzisiaj"
+  function onTodayMainDragOver(e) {
+    if (!draggedTaskId) return;
+    e.preventDefault();
+    // Usuń class z innych drop zones
+    document.querySelectorAll('.today-drop-zone.drop-active')
+      .forEach(el => el.classList.remove('drop-active'));
+    e.currentTarget.classList.add('drop-active');
+  }
+
+  function onTodayMainDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drop-active');
+    
+    const id = draggedTaskId || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+    draggedTaskId = null;
+    if (!id) return;
+    
+    const t = allTasks.find(x => x.id === id);
+    if (!t || t.type !== 'OSOBISTE') return;
+    
+    t.date = 'DZISIAJ';
+    saveTasks();
+    updateCounts();
+    renderTodayView();
+    toast('Przeniesiono na Dzisiaj');
+  }
+
+  function onTodayEveningDragOver(e) {
+    if (!draggedTaskId) return;
+    e.preventDefault();
+    // Usuń class z innych drop zones
+    document.querySelectorAll('.today-drop-zone.drop-active')
+      .forEach(el => el.classList.remove('drop-active'));
+    e.currentTarget.classList.add('drop-active');
+  }
+
+  function onTodayEveningDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drop-active');
+    
+    const id = draggedTaskId || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+    draggedTaskId = null;
+    if (!id) return;
+    
+    const t = allTasks.find(x => x.id === id);
+    if (!t || t.type !== 'OSOBISTE') return;
+    
+    t.date = 'WIECZOREM';
+    saveTasks();
+    updateCounts();
+    renderTodayView();
+    toast('Przeniesiono na Dziś wieczorem');
+  }
+  
+  function onTodayDragLeave(e) {
+    if (!draggedTaskId) return;
+    e.currentTarget.classList.remove('drop-active');
+  }
+
+  /* MENU ⋮ */
+
+  function openTaskMenu(e, id) {
+    e.stopPropagation();
+    const t = allTasks.find(x => x.id === id);
+    if (!t || t.type !== 'OSOBISTE') return;
+
+    taskMenuTaskId = id;
+    const menu = $('taskMenu');
+    const rect = e.currentTarget.getBoundingClientRect();
+    menu.style.display = 'block';
+    menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    menu.style.left = (rect.right + window.scrollX - 150) + 'px';
+  }
+
+  function closeTaskMenu() {
+    $('taskMenu').style.display = 'none';
+    taskMenuTaskId = null;
+  }
+
+  document.addEventListener('click', e => {
+    const menu = $('taskMenu');
+    if (menu.style.display === 'block' && !menu.contains(e.target)) closeTaskMenu();
+  });
+
+  function startEditTask() {
+    if (!taskMenuTaskId) return;
+    openEditTask(taskMenuTaskId);
+    closeTaskMenu();
+  }
+
+  function moveTaskToCalendar() {
+    if (!taskMenuTaskId) return;
+    const t = allTasks.find(x => x.id === taskMenuTaskId);
+    if (!t || t.type !== 'OSOBISTE') {
+      toast('To zadanie może edytować tylko biuro');
+      closeTaskMenu();
+      return;
+    }
+    closeTaskMenu();
+    // Otwieramy edycję i automatycznie pokazujemy kalendarz
+    editingTaskId = taskMenuTaskId;
+    $('sheetTitleLabel').textContent = 'Edytuj zadanie';
+    $('taskTitle').value = t.title || '';
+    $('taskNotes').value = t.notes || '';
+    
+    resetChecklistEditor();
+    if (looksLikeChecklist(t.notes)) {
+      notesMode = 'checklist';
+      const btn = $('checklistToggleBtn');
+      btn.classList.add('active');
+      $('taskNotes').style.display = 'none';
+      parseNotesToChecklist(t.notes);
+      renderChecklistEditor();
+      $('checklistEditor').classList.add('active');
+    }
+    
+    // Ustawiamy CUSTOM i otwieramy kalendarz
+    setDateOption('CUSTOM', t.date && t.date !== 'DZISIAJ' && t.date !== 'WIECZOREM' && t.date !== 'W_AUCIE' && t.date !== 'KIEDYKOLWIEK' ? t.date : null);
+    $('addSheet').classList.add('active');
+    setTimeout(() => openCalendarPopup(), 100);
+  }
+
+  function openDeleteModalFromMenu() {
+    if (!taskMenuTaskId) return;
+    pendingDeleteTaskId = taskMenuTaskId;
+    closeTaskMenu();
+    openDeleteModal();
+  }
+
+  /* DELETE MODAL */
+
+  function openDeleteModal() {
+    const m = $('deleteModal');
+    m.classList.add('active');
+  }
+
+  function closeDeleteModal() {
+    const m = $('deleteModal');
+    m.classList.remove('active');
+    pendingDeleteTaskId = null;
+  }
+
+  function closeDeleteModalByBg(e) {
+    if (e.target.id === 'deleteModal') closeDeleteModal();
+  }
+
+  function confirmDeleteModal() {
+    if (!pendingDeleteTaskId) {
+      closeDeleteModal();
+      return;
+    }
+    const t = allTasks.find(x => x.id === pendingDeleteTaskId);
+    if (!t || t.type !== 'OSOBISTE') {
+      closeDeleteModal();
+      return;
+    }
+    allTasks = allTasks.filter(x => x.id !== pendingDeleteTaskId);
+    saveTasks();
+    updateCounts();
+    const active = document.querySelector('.screen.active');
+    if (active && active.id !== 'homeScreen') {
+      renderView(active.id.replace('Screen',''));
+    }
+    toast('Usunięto zadanie');
+    closeDeleteModal();
+  }
+
+  /* DODAWANIE / EDYCJA + CHECKLISTA */
+
+  function openAddSheet() {
+    editingTaskId = null;
+    $('sheetTitleLabel').textContent = 'Nowe zadanie';
+    $('taskTitle').value = '';
+    $('taskNotes').value = '';
+    setDateOption('KIEDYKOLWIEK', null);
+    $('addSheet').classList.add('active');
+    setTimeout(() => {
+      $('taskTitle').focus();
+      setupSmartDetection();
+    }, 60);
+  }
+
+  function openEditTask(id) {
+    const t = allTasks.find(x => x.id === id);
+    if (!t || t.type !== 'OSOBISTE') {
+      toast('To zadanie może edytować tylko biuro');
+      return;
+    }
+    editingTaskId = id;
+    $('sheetTitleLabel').textContent = 'Edytuj zadanie';
+    $('taskTitle').value = t.title || '';
+    $('taskNotes').value = t.notes || '';
+
+    if (t.date === 'DZISIAJ' || t.date === todayISO()) {
+      setDateOption('DZISIAJ', null);
+    } else if (t.date === 'WIECZOREM') {
+      setDateOption('WIECZOREM', null);
+    } else if (t.date === 'W_AUCIE' || t.inCar) {
+      setDateOption('W_AUCIE', null);
+    } else if (!t.date || t.date === 'KIEDYKOLWIEK') {
+      setDateOption('KIEDYKOLWIEK', null);
+    } else {
+      setDateOption('CUSTOM', t.date);
+    }
+
+    $('addSheet').classList.add('active');
+    setTimeout(() => $('taskTitle').focus(), 60);
+  }
+
+  function closeAddSheet() {
+    $('addSheet').classList.remove('active');
+    editingTaskId = null;
+  }
+
+  function closeAddSheetIfOverlay(e) {
+    if (e.target.id === 'addSheet') closeAddSheet();
+  }
+
+  function setDateOption(opt, customDate) {
+    selectedDateOption = opt;
+    selectedCustomDate = customDate;
+    document.querySelectorAll('.date-option').forEach(o => o.classList.remove('selected'));
+    const el = document.querySelector('.date-option[data-type="' + opt + '"]');
+    if (el) el.classList.add('selected');
+
+    if (opt === 'CUSTOM' && customDate) {
+      $('custom-label').textContent = formatShortDate(customDate);
+    } else if (opt !== 'CUSTOM') {
+      $('custom-label').textContent = 'Wybierz z kalendarza';
+    }
+  }
+
+  function selectDate(ev, opt) {
+    ev.stopPropagation();
+    if (opt === 'CUSTOM') {
+      selectedDateOption = 'CUSTOM';
+      openCalendarPopup();
+    } else {
+      setDateOption(opt, null);
+    }
+  }
+
+  /* SMART DETECTION FOR "W AUCIE" */
+  
+  // Słowa kluczowe wykrywające zadania "W aucie"
+  // Koncentrujemy się na telefonach i kontaktach
+  const CAR_KEYWORDS = [
+    // Telefon
+    'telefon', 'tel',
+    'zadzwonić', 'zadzwonic', 'zadzwon',
+    'oddzwonić', 'oddzwonic', 'oddzwon',
+    'zatelefenować', 'zatelefenowac',
+    'dzwonić', 'dzwonic', 'dzwon',
+    // Kontakt
+    'skontaktować', 'skontaktowac', 'skontaktuj',
+    'kontakt', 'kontak', 'kontaktować', 'kontaktowac',
+    // Wiadomości
+    'napisać', 'napisac', 'napisz',
+    'sms', 'wiadomość', 'wiadomosc',
+    // Inne
+    'pogadać', 'pogadac'
+  ];
+  
+  function taskHasCarKeyword(task) {
+    const text = (task.title || '').toLowerCase();
+    return CAR_KEYWORDS.some(kw => text.includes(kw));
+  }
+  
+  function setupSmartDetection() {
+    const titleInput = $('taskTitle');
+    
+    const checkKeywords = () => {
+      const text = titleInput.value.toLowerCase();
+      const hasKeyword = CAR_KEYWORDS.some(kw => text.includes(kw));
+      
+      // Automatycznie ustaw W_AUCIE jeśli wykryto słowo kluczowe
+      if (hasKeyword && selectedDateOption === 'KIEDYKOLWIEK') {
+        setDateOption('W_AUCIE', null);
+      }
+    };
+    
+    titleInput.removeEventListener('input', checkKeywords);
+    titleInput.addEventListener('input', checkKeywords);
+    checkKeywords();
+  }
+  
+  function acceptSmartSuggestion() {
+    setDateOption('W_AUCIE', null);
+    $('smartSuggestion').classList.remove('show');
+    toast('📱 Ustawiono: W aucie');
+  }
+  
+  function moveToInCar(id) {
+    const t = allTasks.find(x => x.id === id);
+    if (!t || t.type !== 'OSOBISTE') return;
+    
+    // Ustawiamy datę na W_AUCIE
+    t.date = 'W_AUCIE';
+    t.inCar = true;
+    saveTasks();
+    updateCounts();
+    
+    // Re-render aktywnego widoku
+    if ($('todayScreen').classList.contains('active')) renderTodayView();
+    if ($('upcomingScreen').classList.contains('active')) renderUpcoming();
+    if ($('thisweekScreen').classList.contains('active')) renderThisWeek();
+    
+    toast('🚗 Dodano do: W aucie');
+  }
+
+  function saveTask(e) {
+    e.preventDefault();
+    const title = $('taskTitle').value.trim();
+    if (!title) return;
+
+    const notes = $('taskNotes').value.trim();
+
+    let date = selectedDateOption;
+    if (date === 'CUSTOM') {
+      if (!selectedCustomDate) {
+        toast('Wybierz datę z kalendarza');
+        return;
+      }
+      date = selectedCustomDate;
+    }
+    
+    // inCar jest teraz ustawiane przez date === 'W_AUCIE'
+    const inCar = (date === 'W_AUCIE');
+
+    if (editingTaskId) {
+      const t = allTasks.find(x => x.id === editingTaskId);
+      if (t && t.type === 'OSOBISTE') {
+        t.title = title;
+        t.notes = notes;
+        t.date = date;
+        t.inCar = inCar;
+        toast('Zapisano zmiany');
+      }
+    } else {
+      const n = {
+        id: uuid(),
+        type: 'OSOBISTE',
+        taskType: 'OSOBISTE',
+        createdBy: currentUser,
+        forWho: currentUser,
+        title,
+        notes,
+        date,
+        inCar: inCar,
+        status: 'DO_ZROBIENIA',
+        completedBy: '',
+        completedAt: ''
+      };
+      allTasks.push(n);
+      callAPI('addTask', { handlowiec: currentUser, task: JSON.stringify(n) });
+      toast('Dodano zadanie');
+    }
+
+    saveTasks();
+    updateCounts();
+    const active = document.querySelector('.screen.active');
+    if (active && active.id !== 'homeScreen') {
+      renderView(active.id.replace('Screen',''));
+    }
+    closeAddSheet();
+  }
+
+  /* KALENDARZ */
+
+  function openCalendarPopup() {
+    $('calendarPopup').classList.add('active');
+    calendarDate = selectedCustomDate ? new Date(selectedCustomDate) : new Date();
+    renderCalendar();
+  }
+
+  function calendarOverlayClick(e) {
+    if (e.target.id === 'calendarPopup') {
+      $('calendarPopup').classList.remove('active');
+    }
+  }
+
+  function renderCalendar() {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    $('calendarMonth').textContent =
+      calendarDate.toLocaleDateString('pl-PL', { month:'long', year:'numeric' });
+
+    const grid = $('calendarGrid');
+    const first = new Date(year, month, 1);
+    let start = first.getDay();
+    if (start === 0) start = 7;
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const todayStr = todayISO();
+
+    let html = '';
+    const headers = ['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+    headers.forEach(h => html += '<div class="calendar-day-header">' + h + '</div>');
+
+    for (let i=1;i<start;i++) {
+      html += '<div class="calendar-day disabled"></div>';
+    }
+
+    for (let d=1; d<=daysInMonth; d++) {
+      const ds = formatLocalISO(new Date(year, month, d));
+      let cls = 'calendar-day';
+      if (ds === todayStr) cls += ' today';
+      if (selectedCustomDate === ds) cls += ' selected';
+      
+      // Blokuj daty z przeszłości
+      if (ds < todayStr) {
+        cls += ' disabled';
+        html += '<div class="' + cls + '">' + d + '</div>';
+      } else {
+        html += '<div class="' + cls + '" onclick="selectCalendarDate(\'' + ds + '\')">' + d + '</div>';
+      }
+    }
+
+    grid.innerHTML = html;
+  }
+
+  function changeMonth(delta) {
+    calendarDate.setMonth(calendarDate.getMonth() + delta);
+    renderCalendar();
+  }
+
+  function selectCalendarDate(ds) {
+    selectedCustomDate = ds;
+    setDateOption('CUSTOM', ds);
+    $('calendarPopup').classList.remove('active');
+  }
+
+  /* INIT */
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const now = new Date();
+    const weekday = now.toLocaleDateString('pl-PL', { weekday:'long' });
+    $('homeDay').textContent = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+    $('homeDate').textContent = now.toLocaleDateString('pl-PL', {
+      day:'numeric', month:'long', year:'numeric'
+    });
+    $('today-full-date').textContent = now.toLocaleDateString('pl-PL', {
+      day:'numeric', month:'long', year:'numeric'
+    });
+    $('today-label').textContent = formatFullDate(now);
+
+    const endOfWeek = (() => {
+      const d = new Date();
+      const day = d.getDay() || 7;
+      d.setDate(d.getDate() + (7 - day));
+      return d;
+    })();
+    $('thisweek-subtitle').textContent =
+      'Do ' + endOfWeek.getDate() + ' ' +
+      endOfWeek.toLocaleDateString('pl-PL',{month:'long'});
+
+    loadTasks();
+    updateCounts();
+    syncTasks();
+  });
+
+
+</script>
+</body>
+</html>
