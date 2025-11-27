@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dedra-pwa-v2.1.0';
+const CACHE_NAME = 'dedra-pwa-v3.0.8';
 const urlsToCache = [
   '/Appka/',
   '/Appka/index.html',
