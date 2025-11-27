@@ -639,7 +639,7 @@ const LS_VERSION = 'DR_VERSION';
 const savedVersion = localStorage.getItem(LS_VERSION);
 if (savedVersion !== APP_VERSION) {
   console.log('🔄 Nowa wersja! Czyszczę stare dane...', savedVersion, '→', APP_VERSION);
-  localStorage.removeItem('DR_PRODUCTS_V2');
+  localStorage.removeItem('DR_PRODUCTS_V3');
   localStorage.setItem(LS_VERSION, APP_VERSION);
 }
 
@@ -649,7 +649,7 @@ document.addEventListener('gesturestart', e=>e.preventDefault(), {passive:false}
 
 let currentUser=null,currentEmail=null;
 let products=[],posItems=[],sets=[];
-const LS_PRODUCTS='DR_PRODUCTS_V2';
+const LS_PRODUCTS='DR_PRODUCTS_V3';
 const LS_CART='DR_CART_V2';
 const LS_QUEUE='DR_QUEUE_V1';
 let cart=[],queue=[],currentTab='produkty';
