@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDA DEDRA v9 FINAL - 3 tryby + Fix szary pasek logowania</title>
+  <title>PDA DEDRA v3.3.1 - Statusy + Zamienniki (Clean)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="mobile-web-app-capable" content="yes">
@@ -114,6 +114,14 @@
     .add-btn{min-width:60px;height:60px;border:none;border-radius:14px;cursor:pointer;font-size:26px;font-weight:900;color:#fff;display:flex;align-items:center;justify-content:center;background:var(--success);box-shadow:0 2px 6px rgba(0,0,0,.15);transition:transform .08s}
     .add-btn:active{transform:scale(.97)}
     .add-btn.orange{background:var(--orange)}
+
+    /* === STATUSY PRODUKTÓW === */
+    .add-btn.status-aktywny{background:#10b981}
+    .add-btn.status-planowany{background:#6b7280}
+    .add-btn.status-nieaktywny{background:#ec4899}
+    .add-btn.status-anulowany{background:#ec4899}
+    .add-btn.status-blokada{background:#ec4899}
+
 
     /* === KARUZELA - CLEAN VERSION === */
     .bottom-nav{position:fixed;left:0;right:0;bottom:0;height:var(--nav-h);background:#f9fafb;border-top:1px solid #e5e7eb;z-index:90;transition:transform .25s;overflow:hidden;padding-bottom:env(safe-area-inset-bottom)}
@@ -346,30 +354,40 @@
 </head>
 <body class="login-active">
 
-  
   <section id="loginScreen">
-    <div class="login-wrapper" style="display:flex;align-items:center;justify-content:center;height:100vh;background:#1a73e8;">
-      <div class="login-card" style="background:white;padding:40px 35px;border-radius:20px;box-shadow:0 8px 30px rgba(0,0,0,0.15);width:90%;max-width:380px;">
-        <h2 style="margin:0 0 10px 0;font-size:26px;font-weight:700;">🔐 Logowanie</h2>
-        <p style="margin:0 0 20px 0;font-size:14px;color:#555;">Wprowadź email i hasło</p>
-
-        <input id="loginEmail" type="email" placeholder="Email" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;font-size:15px;">
-        <input id="loginPassword" type="password" placeholder="Hasło" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;font-size:15px;">
-
-        <label style="font-size:14px;display:flex;align-items:center;margin-bottom:20px;">
-          <input type="checkbox" id="rememberMe" checked style="margin-right:6px;">
-          Zapamiętaj mnie
-        </label>
-
-        <button onclick="login()" style="width:100%;padding:14px;background:#1a73e8;color:white;font-size:16px;border:none;border-radius:10px;cursor:pointer;">
-          🚀 Zaloguj się
-        </button>
-
-        <p style="text-align:center;margin-top:20px;font-size:12px;color:#777;">Created by Sebastian Glusiński • PDA DEDRA v3.3.1 PWA</p>
+    <div class="card">
+      <div class="title">🔐 Logowanie</div>
+      <div class="subtitle">Wprowadź email i hasło</div>
+      
+      <!-- Email input -->
+      <input type="email" id="loginEmail" placeholder="Email" 
+        style="width:100%;padding:12px 16px;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;margin-bottom:12px;"
+        autocomplete="email">
+      
+      <!-- Password input -->
+      <input type="password" id="loginPassword" placeholder="Hasło"
+        style="width:100%;padding:12px 16px;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;margin-bottom:12px;"
+        autocomplete="current-password">
+      
+      <!-- Remember me checkbox -->
+      <label style="display:flex;align-items:center;margin-bottom:16px;cursor:pointer;user-select:none;">
+        <input type="checkbox" id="rememberMe" checked
+          style="width:18px;height:18px;margin-right:8px;cursor:pointer;">
+        <span style="font-size:14px;color:#374151;">Zapamiętaj mnie</span>
+      </label>
+      
+      <!-- Login button -->
+      <button class="btn btn-primary" style="width:100%;" onclick="handleLogin()">
+        🚀 Zaloguj się
+      </button>
+      
+      <!-- Face ID info (tylko jeśli dostępne) -->
+      <div id="faceIdInfo" style="display:none;margin-top:12px;padding:12px;background:#eff6ff;border-radius:8px;text-align:center;font-size:13px;color:#1e40af;">
+        👤 Po zalogowaniu możesz włączyć Face ID / Touch ID
       </div>
     </div>
+    <div class="login-footer">Created by Sebastian Głusiński | PDA DEDRA v3.3.1 PWA</div>
   </section>
-
 
   <section id="mainScreen" style="display:none;">
     <div class="topbar">
@@ -494,6 +512,25 @@
     </div>
   </div>
 
+  <!-- Popup zamienników -->
+  <div id="replacementsOverlay" class="overlay" style="display:none">
+    <div class="calc-box" style="max-height:85vh;display:flex;flex-direction:column">
+      <button class="calc-close" onclick="closeReplacements()">✕</button>
+      <div class="calc-header">
+        <div id="replTitle" class="calc-title">—</div>
+        <div id="replSub" class="calc-sub">—</div>
+      </div>
+      
+      <div style="padding:16px;background:#fef2f2;border-radius:12px;margin:12px 0;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:#991b1b" id="replStatus">⚠️ Produkt jest NIEAKTYWNY</div>
+      </div>
+      
+      <div style="font-size:14px;font-weight:700;color:#6b7280;margin-bottom:8px;padding:0 4px">Podpowiedź zamiennika:</div>
+      
+      <div id="replacementsList" style="flex:1;overflow-y:auto;padding:0 4px"></div>
+    </div>
+  </div>
+
   <div id="calcOverlay" class="overlay">
     <div class="calc-box">
       <button class="calc-close" onclick="closeCalc()">✕</button>
@@ -601,7 +638,7 @@
 
 <script>
 // API URL do Google Apps Script
-const API_URL = 'https://script.google.com/macros/s/AKfycbwXXWtOoE9tPFzQyFXzFSKY1tDnw6rVQn1F3sN9HKIT7tYp0MfQ1-pH-mfNRJaOotxZ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzJbDw1JZx34XOwTQSWo0EnwBA4ip8_cnhUFk2xMLE2-9e0AD9jQQVEXwJO-k3_LCo5/exec';
 
 // Wersja aplikacji - zmień gdy dodajesz GAZETKA lub inne ważne zmiany
 const APP_VERSION = 'v3.0.6';
@@ -769,45 +806,131 @@ window.onload=function(){
 
   hide($('syncOverlay'));
   
-  loadHandlowcy();
+  initLoginListeners();
 };
 
-async function loadHandlowcy() {
+
+// === LOGOWANIE EMAIL + HASŁO ===
+async function handleLogin() {
+  const email = $('loginEmail').value.trim();
+  const password = $('loginPassword').value.trim();
+  const rememberMe = $('rememberMe').checked;
+  
+  if (!email || !password) {
+    toast('Wprowadź email i hasło');
+    return;
+  }
+  
+  // Pokaż loader
+  const btn = document.querySelector('#loginScreen button');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '⏳ Logowanie...';
+  btn.disabled = true;
+  
   try {
-    const data = await callAPI('getHandlowcy');
-    const select = $('handlowiecSelect');
-    select.innerHTML = '<option value="">-- Wybierz --</option>';
+    const result = await callAPI('loginUser', { email, password });
     
-    if (!data || !data.length) {
-      alertBox('Brak danych', 'Nie udało się pobrać listy handlowców.');
-      return;
+    if (result.success) {
+      currentUser = result.nazwa;
+      currentEmail = result.email;
+      
+      // Zapisz w localStorage
+      localStorage.setItem(LS_USER, currentUser);
+      localStorage.setItem(LS_EMAIL, currentEmail);
+      
+      // Zapamiętaj dane logowania (jeśli zaznaczone)
+      if (rememberMe) {
+        localStorage.setItem('savedEmail', email);
+        localStorage.setItem('savedPassword', btoa(password)); // Base64 (UWAGA: nie jest super bezpieczne, ale lepsze niż plain text)
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        localStorage.removeItem('savedEmail');
+        localStorage.removeItem('savedPassword');
+        localStorage.removeItem('rememberMe');
+      }
+      
+      // Przełącz ekrany
+      $('userAvatar').textContent = getInitials(currentUser);
+      $('loginScreen').style.display = 'none';
+      $('mainScreen').style.display = 'block';
+      document.body.classList.remove('login-active');
+      
+      toast('✅ Zalogowano: ' + currentUser);
+      
+      // Synchronizuj dane
+      await syncAllBlocking();
+      initSearch();
+      focusSearch();
+      
+      // Sprawdź czy urządzenie obsługuje Face ID
+      checkBiometricSupport();
+      
+    } else {
+      toast('❌ ' + (result.message || 'Błąd logowania'));
+      btn.innerHTML = originalText;
+      btn.disabled = false;
     }
-    
-    data.forEach(h => {
-      const opt = document.createElement('option');
-      opt.value = JSON.stringify(h);
-      opt.textContent = h.nazwa;
-      select.appendChild(opt);
-    });
   } catch (error) {
-    alertBox('Błąd', 'Nie udało się połączyć z serwerem: ' + error.message);
+    console.error('Login error:', error);
+    toast('❌ Błąd połączenia');
+    btn.innerHTML = originalText;
+    btn.disabled = false;
   }
 }
 
-function login(){
-  const select=$('handlowiecSelect');
-  if(!select.value){ alertBox('Uwaga','Wybierz handlowca.'); return; }
-  const h=JSON.parse(select.value);
-  currentUser=h.nazwa; currentEmail=h.email;
-  $('userAvatar').textContent = getInitials(currentUser);
-  $('loginScreen').style.display='none';
-  $('mainScreen').style.display='block';
+// Auto-wypełnienie przy powrocie (jeśli zapamiętane)
+function autoFillLogin() {
+  const savedEmail = localStorage.getItem('savedEmail');
+  const savedPassword = localStorage.getItem('savedPassword');
+  const rememberMe = localStorage.getItem('rememberMe');
   
-  document.body.classList.remove('login-active');
+  if (savedEmail && savedPassword && rememberMe === 'true') {
+    $('loginEmail').value = savedEmail;
+    $('loginPassword').value = atob(savedPassword); // Dekoduj z Base64
+    $('rememberMe').checked = true;
+    
+    // Info dla użytkownika
+    toast('💾 Dane logowania zostały wypełnione');
+  }
+}
+
+// Sprawdź czy urządzenie obsługuje biometrię
+function checkBiometricSupport() {
+  if (window.PublicKeyCredential) {
+    // Urządzenie obsługuje WebAuthn (Face ID / Touch ID)
+    const infoBox = $('faceIdInfo');
+    if (infoBox) {
+      infoBox.style.display = 'block';
+    }
+    console.log('✅ Biometric authentication available');
+  } else {
+    console.log('❌ Biometric authentication NOT available');
+  }
+}
+
+// Enter = zaloguj
+function initLoginListeners() {
+  const emailInput = $('loginEmail');
+  const passwordInput = $('loginPassword');
   
-  syncAllBlocking();
-  initSearch();
-  focusSearch();
+  if (emailInput) {
+    emailInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        passwordInput.focus();
+      }
+    });
+  }
+  
+  if (passwordInput) {
+    passwordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        handleLogin();
+      }
+    });
+  }
+  
+  // Auto-wypełnij jeśli zapamiętane
+  autoFillLogin();
 }
 
 function getInitials(name=''){ const p=name.trim().split(/\s+/); const a=(p[0]||'')[0]||''; const b=(p[1]||'')[0]||''; return (a+b).toUpperCase(); }
@@ -833,11 +956,13 @@ async function syncAllBlocking(){
       PROMO: p.PROMO || '',
       GAZETKA: p.GAZETKA || '',
       TOP: p.TOP || '',
+      STATUS: p.STATUS || 'AKTYWNY',
       q1:Number(p.Q1||p.q1)||1, q2:Number(p.Q2||p.q2)||0, q3:Number(p.Q3||p.q3)||0,
       qco1:String(p.QCO1||p.qco1||'szt.'), qco2:String(p.QCO2||p.qco2||''), qco3:String(p.QCO3||p.qco3||''),
       min: Number(p.MinimumZam||p.minimumZam||p.Q1||p.q1||1) || 1,
       hashtag: String(p.Hashtag||p.hashtag||''),
-      kolor: String(p.kolor || p.Kolor || '')
+      kolor: String(p.kolor || p.Kolor || ''),
+      zamienniki: String(p.zamienniki || p.Zamienniki || '')
     }));
     
     setSyncProgress(40);
@@ -1021,10 +1146,29 @@ function createProductElement(p){
   const actions=document.createElement('div'); actions.className='actions';
   const qtyIn=getQtyInCart(p.symbol);
   const add=document.createElement('button'); add.className='add-btn'; add.textContent=(qtyIn || '+');
-  add.style.background = qtyIn>0 ? '#2563eb' : 'var(--success)';
+  
+  // STATUS - kolorowanie przycisku
+  const status = (p.STATUS || 'AKTYWNY').toLowerCase();
+  if (status === 'aktywny') {
+    add.classList.add('status-aktywny');
+  } else if (status === 'planowany') {
+    add.classList.add('status-planowany');
+  } else if (status === 'nieaktywny') {
+    add.classList.add('status-nieaktywny');
+  } else if (status === 'anulowany') {
+    add.classList.add('status-anulowany');
+  } else if (status === 'blokada') {
+    add.classList.add('status-blokada');
+  }
+  
+  // Jeśli w koszyku - niebieski (nadpisuje status)
+  if (qtyIn > 0) {
+    add.style.background = '#2563eb';
+  }
+  
   add.onclick=(e)=>{
     e.preventDefault();
-    setTimeout(()=>openCalc(p), 0);
+    setTimeout(()=>checkProductStatus(p), 0);
   };
   actions.append(add); 
   row.append(left,actions);
@@ -1154,7 +1298,7 @@ function initSearch(){
   if (scanBuffer.length===13) {
     const q = scanBuffer;
     const cand = products.find(p => (p.ean||'').replace(/\s+/g,'') === q);
-    if (cand){ openCalc(cand); clearSearch(true); focusSearch(); }
+    if (cand){ checkProductStatus(cand); clearSearch(true); focusSearch(); }
     scanBuffer='';
   }
 } else { scanBuffer=''; lastKeyTime=0; }
@@ -1178,7 +1322,7 @@ function initSearch(){
       } else {
         candidate = products.find(p => normalize(p.symbol).includes(q)) || products.find(p => normalize(p.nazwa).includes(q));
       }
-      if (candidate){ openCalc(candidate); clearSearch(true); focusSearch(); } else { toast('Nie znaleziono produktu'); }
+      if (candidate){ checkProductStatus(candidate); clearSearch(true); focusSearch(); } else { toast('Nie znaleziono produktu'); }
     }
   });
 
@@ -1280,7 +1424,7 @@ function initSearch(){
         // Szukaj produktu ZAWSZE (nawet jeśli searchMode był już 0)
         const cand = products.find(p => (p.ean||'').replace(/\s+/g,'') === value);
         if (cand) {
-          openCalc(cand);
+          checkProductStatus(cand);
           clearSearch(true);
           focusSearch();
         } else {
@@ -1724,6 +1868,116 @@ function editQueueItem(idx){
   
   act.append(cancelBtn, saveBtn);
   $('uiOverlay').style.display = 'flex';
+}
+
+// === SYSTEM STATUSÓW I ZAMIENNIKÓW ===
+
+function checkProductStatus(p) {
+  const status = (p.STATUS || 'AKTYWNY').toUpperCase();
+  
+  // AKTYWNY i PLANOWANY → normalny kalkulator
+  if (status === 'AKTYWNY' || status === 'PLANOWANY') {
+    openCalc(p);
+    return;
+  }
+  
+  // NIEAKTYWNY, ANULOWANY, BLOKADA → popup z zamiennikami
+  if (status === 'NIEAKTYWNY' || status === 'ANULOWANY' || status === 'BLOKADA') {
+    showReplacementsPopup(p, status);
+    return;
+  }
+  
+  // Domyślnie (jeśli brak statusu) → normalny kalkulator
+  openCalc(p);
+}
+
+function showReplacementsPopup(product, status) {
+  const overlay = document.getElementById('replacementsOverlay');
+  const title = document.getElementById('replTitle');
+  const sub = document.getElementById('replSub');
+  const statusDiv = document.getElementById('replStatus');
+  const listDiv = document.getElementById('replacementsList');
+  
+  // Górna część
+  title.textContent = product.nazwa || '—';
+  sub.textContent = `${product.symbol || ''} ${product.ean ? ('| EAN ' + product.ean) : ''}`;
+  
+  // Komunikat statusu
+  if (status === 'NIEAKTYWNY') {
+    statusDiv.textContent = '⚠️ Produkt jest NIEAKTYWNY';
+  } else if (status === 'ANULOWANY') {
+    statusDiv.textContent = '⚠️ Produkt jest ANULOWANY';
+  } else if (status === 'BLOKADA') {
+    statusDiv.textContent = '⚠️ Produkt jest ZABLOKOWANY';
+  }
+  
+  // Znajdź zamienniki
+  const replacements = findReplacements(product);
+  
+  // Renderuj listę
+  listDiv.innerHTML = '';
+  
+  if (replacements.length === 0) {
+    listDiv.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280">Brak dostępnych zamienników</div>';
+  } else {
+    replacements.forEach(repl => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:#f9fafb;border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;transition:background 0.2s';
+      item.onmouseenter = () => { item.style.background = '#f3f4f6'; };
+      item.onmouseleave = () => { item.style.background = '#f9fafb'; };
+      
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0';
+      info.innerHTML = `
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">${repl.nazwa || '—'}</div>
+        <div style="font-size:13px;color:#6b7280">${repl.symbol || ''} | ${repl.ean || ''}</div>
+      `;
+      
+      const btn = document.createElement('button');
+      btn.className = 'add-btn status-aktywny';
+      btn.style.cssText = 'min-width:50px;height:50px;margin-left:12px';
+      btn.textContent = '+';
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        closeReplacements();
+        openCalc(repl);
+      };
+      
+      item.append(info, btn);
+      listDiv.append(item);
+    });
+  }
+  
+  overlay.style.display = 'flex';
+}
+
+function closeReplacements() {
+  document.getElementById('replacementsOverlay').style.display = 'none';
+}
+
+function findReplacements(product) {
+  const replacements = [];
+  
+  // Pobierz zamienniki (format: "SYMBOL1,SYMBOL2,SYMBOL3")
+  const replacementsStr = product.zamienniki || '';
+  if (!replacementsStr.trim()) {
+    return replacements;
+  }
+  
+  // Parsuj symbole
+  const replSymbols = replacementsStr.split(',')
+    .map(s => s.trim().toUpperCase())
+    .filter(s => s.length > 0);
+  
+  // Znajdź produkty
+  replSymbols.forEach(sym => {
+    const repl = products.find(p => p.symbol === sym);
+    if (repl) {
+      replacements.push(repl);
+    }
+  });
+  
+  return replacements;
 }
 
 let calcProduct=null, calcVal=0, calcMin=1;
