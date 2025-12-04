@@ -359,32 +359,23 @@
       <div class="title">🔐 Logowanie</div>
       <div class="subtitle">Wprowadź email i hasło</div>
       
-      <!-- Email input -->
       <input type="email" id="loginEmail" placeholder="Email" 
         style="width:100%;padding:12px 16px;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;margin-bottom:12px;"
         autocomplete="email">
       
-      <!-- Password input -->
       <input type="password" id="loginPassword" placeholder="Hasło"
         style="width:100%;padding:12px 16px;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;margin-bottom:12px;"
         autocomplete="current-password">
       
-      <!-- Remember me checkbox -->
       <label style="display:flex;align-items:center;margin-bottom:16px;cursor:pointer;user-select:none;">
         <input type="checkbox" id="rememberMe" checked
           style="width:18px;height:18px;margin-right:8px;cursor:pointer;">
         <span style="font-size:14px;color:#374151;">Zapamiętaj mnie</span>
       </label>
       
-      <!-- Login button -->
       <button class="btn btn-primary" style="width:100%;" onclick="handleLogin()">
         🚀 Zaloguj się
       </button>
-      
-      <!-- Face ID info (tylko jeśli dostępne) -->
-      <div id="faceIdInfo" style="display:none;margin-top:12px;padding:12px;background:#eff6ff;border-radius:8px;text-align:center;font-size:13px;color:#1e40af;">
-        👤 Po zalogowaniu możesz włączyć Face ID / Touch ID
-      </div>
     </div>
     <div class="login-footer">Created by Sebastian Głusiński | PDA DEDRA v3.3.1 PWA</div>
   </section>
@@ -638,7 +629,7 @@
 
 <script>
 // API URL do Google Apps Script
-const API_URL = 'https://script.google.com/macros/s/AKfycbzJbDw1JZx34XOwTQSWo0EnwBA4ip8_cnhUFk2xMLE2-9e0AD9jQQVEXwJO-k3_LCo5/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzS30-gRBR56AgZM2mV7cOkYx5-x_4R4s4OcpWEE2FnhZRTnIAdYHl0-O0XrO35xAWDSA/exec';
 
 // Wersja aplikacji - zmień gdy dodajesz GAZETKA lub inne ważne zmiany
 const APP_VERSION = 'v3.0.6';
@@ -809,8 +800,32 @@ window.onload=function(){
   initLoginListeners();
 };
 
+// === LOGOWANIE EMAIL + HASŁO (z Apps Script) ===
+function initLoginListeners() {
+  const emailInput = $('loginEmail');
+  const passwordInput = $('loginPassword');
+  
+  // Auto-wypełnij jeśli zapamiętane
+  const savedEmail = localStorage.getItem('savedEmail');
+  const savedPassword = localStorage.getItem('savedPassword');
+  
+  if (savedEmail && savedPassword) {
+    emailInput.value = savedEmail;
+    passwordInput.value = atob(savedPassword);
+    $('rememberMe').checked = true;
+    toast('💾 Dane logowania wypełnione');
+  }
+  
+  // Enter = login
+  emailInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') passwordInput.focus();
+  });
+  
+  passwordInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+}
 
-// === LOGOWANIE EMAIL + HASŁO ===
 async function handleLogin() {
   const email = $('loginEmail').value.trim();
   const password = $('loginPassword').value.trim();
@@ -834,14 +849,12 @@ async function handleLogin() {
       currentUser = result.nazwa;
       currentEmail = result.email;
       
-      // Zapisz w localStorage
       localStorage.setItem(LS_USER, currentUser);
       localStorage.setItem(LS_EMAIL, currentEmail);
       
-      // Zapamiętaj dane logowania (jeśli zaznaczone)
       if (rememberMe) {
         localStorage.setItem('savedEmail', email);
-        localStorage.setItem('savedPassword', btoa(password)); // Base64 (UWAGA: nie jest super bezpieczne, ale lepsze niż plain text)
+        localStorage.setItem('savedPassword', btoa(password));
         localStorage.setItem('rememberMe', 'true');
       } else {
         localStorage.removeItem('savedEmail');
@@ -849,7 +862,6 @@ async function handleLogin() {
         localStorage.removeItem('rememberMe');
       }
       
-      // Przełącz ekrany
       $('userAvatar').textContent = getInitials(currentUser);
       $('loginScreen').style.display = 'none';
       $('mainScreen').style.display = 'block';
@@ -857,13 +869,9 @@ async function handleLogin() {
       
       toast('✅ Zalogowano: ' + currentUser);
       
-      // Synchronizuj dane
       await syncAllBlocking();
       initSearch();
       focusSearch();
-      
-      // Sprawdź czy urządzenie obsługuje Face ID
-      checkBiometricSupport();
       
     } else {
       toast('❌ ' + (result.message || 'Błąd logowania'));
@@ -876,61 +884,6 @@ async function handleLogin() {
     btn.innerHTML = originalText;
     btn.disabled = false;
   }
-}
-
-// Auto-wypełnienie przy powrocie (jeśli zapamiętane)
-function autoFillLogin() {
-  const savedEmail = localStorage.getItem('savedEmail');
-  const savedPassword = localStorage.getItem('savedPassword');
-  const rememberMe = localStorage.getItem('rememberMe');
-  
-  if (savedEmail && savedPassword && rememberMe === 'true') {
-    $('loginEmail').value = savedEmail;
-    $('loginPassword').value = atob(savedPassword); // Dekoduj z Base64
-    $('rememberMe').checked = true;
-    
-    // Info dla użytkownika
-    toast('💾 Dane logowania zostały wypełnione');
-  }
-}
-
-// Sprawdź czy urządzenie obsługuje biometrię
-function checkBiometricSupport() {
-  if (window.PublicKeyCredential) {
-    // Urządzenie obsługuje WebAuthn (Face ID / Touch ID)
-    const infoBox = $('faceIdInfo');
-    if (infoBox) {
-      infoBox.style.display = 'block';
-    }
-    console.log('✅ Biometric authentication available');
-  } else {
-    console.log('❌ Biometric authentication NOT available');
-  }
-}
-
-// Enter = zaloguj
-function initLoginListeners() {
-  const emailInput = $('loginEmail');
-  const passwordInput = $('loginPassword');
-  
-  if (emailInput) {
-    emailInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        passwordInput.focus();
-      }
-    });
-  }
-  
-  if (passwordInput) {
-    passwordInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        handleLogin();
-      }
-    });
-  }
-  
-  // Auto-wypełnij jeśli zapamiętane
-  autoFillLogin();
 }
 
 function getInitials(name=''){ const p=name.trim().split(/\s+/); const a=(p[0]||'')[0]||''; const b=(p[1]||'')[0]||''; return (a+b).toUpperCase(); }
