@@ -857,7 +857,7 @@ async function syncAllBlocking(){
       hashtag: String(p.Hashtag||p.hashtag||''),
       kolor: String(p.kolor || p.Kolor || ''),
       zamienniki: String(p.zamienniki || p.Zamienniki || ''),
-      img: String(p.img || p.IMG || '')
+      img: ((p.img ?? p.IMG ?? "").toString().trim())
     }));
     
     setSyncProgress(40);
@@ -1005,15 +1005,16 @@ function createProductElement(p){
   const left=document.createElement('div'); left.className='product-left';
   
   // ZDJĘCIE z Produkty_INFO.img (tak jak w POS)
-  if(p.img){
-    const thumb=document.createElement('img'); 
-    thumb.className='product-thumb'; 
-    thumb.src=p.img; 
-    thumb.alt=p.nazwa;
-    thumb.loading='lazy'; // Cache + lazy loading
-    thumb.decoding='async'; // Asynchroniczne dekodowanie
+  if ((p.img ?? "").toString().trim().length > 6) {
+    const thumb = document.createElement('img');
+    thumb.className = 'product-thumb';
+    thumb.src = (p.img ?? "").toString().trim();
+    thumb.alt = p.nazwa;
+    thumb.loading = 'lazy';
+    thumb.decoding = 'async';
     left.append(thumb);
-  }
+}
+
   
   const info=document.createElement('div'); info.className='product-info';
   
