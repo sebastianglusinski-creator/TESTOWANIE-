@@ -97,7 +97,7 @@
     .product{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border-radius:14px;padding:16px;margin:10px 0;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:background .15s,box-shadow .15s;max-width:100%}
     .product:hover{box-shadow:0 4px 12px rgba(0,0,0,.12)}
     .product-left{display:flex;gap:12px;align-items:center;flex:1;min-width:0}
-    .product-thumb{width:60px;height:60px;border-radius:10px;object-fit:cover;flex-shrink:0;background:#f3f4f6}
+    .product-thumb{width:60px;height:60px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#f3f4f6}
     .product-info{flex:1;min-width:0}
     .name{font-weight:900;font-size:18px;word-wrap:break-word}
     .codes{font-size:13px;color:var(--muted);margin-top:6px}
@@ -356,26 +356,10 @@
 
   <section id="loginScreen">
     <div class="card">
-      <div class="title">🔐 Logowanie</div>
-      <div class="subtitle">Wprowadź email i hasło</div>
-      
-      <input type="email" id="loginEmail" placeholder="Email" 
-        style="width:100%;padding:12px 16px;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;margin-bottom:12px;"
-        autocomplete="email">
-      
-      <input type="password" id="loginPassword" placeholder="Hasło"
-        style="width:100%;padding:12px 16px;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;margin-bottom:12px;"
-        autocomplete="current-password">
-      
-      <label style="display:flex;align-items:center;margin-bottom:16px;cursor:pointer;user-select:none;">
-        <input type="checkbox" id="rememberMe" checked
-          style="width:18px;height:18px;margin-right:8px;cursor:pointer;">
-        <span style="font-size:14px;color:#374151;">Zapamiętaj mnie</span>
-      </label>
-      
-      <button class="btn btn-primary" style="width:100%;" onclick="handleLogin()">
-        🚀 Zaloguj się
-      </button>
+      <div class="title">Zaloguj się jako</div>
+      <div class="subtitle">Wybierz handlowca z listy</div>
+      <select id="handlowiecSelect" style="margin-bottom:12px;"><option value="">Ładowanie…</option></select>
+      <button class="btn btn-primary" style="width:100%;" onclick="login()">🚀 Rozpocznij</button>
     </div>
     <div class="login-footer">Created by Sebastian Głusiński | PDA DEDRA v3.3.1 PWA</div>
   </section>
@@ -629,7 +613,7 @@
 
 <script>
 // API URL do Google Apps Script
-const API_URL = 'hhttps://script.google.com/macros/s/AKfycby9NHJezp_l548o-iQ2hPzw9OnL0PbVl7mKvb1UOI092mlL2UeB670BNy4laoWHv4WGfQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxGAfoHXqnz7gaXLGwUHDDA-ETTNYg53g3cxfarA3yuST_SgZXXZV1KOmKnY8XwxKF_Fw/exec';
 
 // Wersja aplikacji - zmień gdy dodajesz GAZETKA lub inne ważne zmiany
 const APP_VERSION = 'v3.0.6';
@@ -797,93 +781,45 @@ window.onload=function(){
 
   hide($('syncOverlay'));
   
-  initLoginListeners();
+  loadHandlowcy();
 };
 
-// === LOGOWANIE EMAIL + HASŁO (z Apps Script) ===
-function initLoginListeners() {
-  const emailInput = $('loginEmail');
-  const passwordInput = $('loginPassword');
-  
-  // Auto-wypełnij jeśli zapamiętane
-  const savedEmail = localStorage.getItem('savedEmail');
-  const savedPassword = localStorage.getItem('savedPassword');
-  
-  if (savedEmail && savedPassword) {
-    emailInput.value = savedEmail;
-    passwordInput.value = atob(savedPassword);
-    $('rememberMe').checked = true;
-    toast('💾 Dane logowania wypełnione');
+async function loadHandlowcy() {
+  try {
+    const data = await callAPI('getHandlowcy');
+    const select = $('handlowiecSelect');
+    select.innerHTML = '<option value="">-- Wybierz --</option>';
+    
+    if (!data || !data.length) {
+      alertBox('Brak danych', 'Nie udało się pobrać listy handlowców.');
+      return;
+    }
+    
+    data.forEach(h => {
+      const opt = document.createElement('option');
+      opt.value = JSON.stringify(h);
+      opt.textContent = h.nazwa;
+      select.appendChild(opt);
+    });
+  } catch (error) {
+    alertBox('Błąd', 'Nie udało się połączyć z serwerem: ' + error.message);
   }
-  
-  // Enter = login
-  emailInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') passwordInput.focus();
-  });
-  
-  passwordInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleLogin();
-  });
 }
 
-async function handleLogin() {
-  const email = $('loginEmail').value.trim();
-  const password = $('loginPassword').value.trim();
-  const rememberMe = $('rememberMe').checked;
+function login(){
+  const select=$('handlowiecSelect');
+  if(!select.value){ alertBox('Uwaga','Wybierz handlowca.'); return; }
+  const h=JSON.parse(select.value);
+  currentUser=h.nazwa; currentEmail=h.email;
+  $('userAvatar').textContent = getInitials(currentUser);
+  $('loginScreen').style.display='none';
+  $('mainScreen').style.display='block';
   
-  if (!email || !password) {
-    toast('Wprowadź email i hasło');
-    return;
-  }
+  document.body.classList.remove('login-active');
   
-  // Pokaż loader
-  const btn = document.querySelector('#loginScreen button');
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '⏳ Logowanie...';
-  btn.disabled = true;
-  
-  try {
-    const result = await callAPI('loginUser', { email, password });
-    
-    if (result.success) {
-      currentUser = result.nazwa;
-      currentEmail = result.email;
-      
-      localStorage.setItem(LS_USER, currentUser);
-      localStorage.setItem(LS_EMAIL, currentEmail);
-      
-      if (rememberMe) {
-        localStorage.setItem('savedEmail', email);
-        localStorage.setItem('savedPassword', btoa(password));
-        localStorage.setItem('rememberMe', 'true');
-      } else {
-        localStorage.removeItem('savedEmail');
-        localStorage.removeItem('savedPassword');
-        localStorage.removeItem('rememberMe');
-      }
-      
-      $('userAvatar').textContent = getInitials(currentUser);
-      $('loginScreen').style.display = 'none';
-      $('mainScreen').style.display = 'block';
-      document.body.classList.remove('login-active');
-      
-      toast('✅ Zalogowano: ' + currentUser);
-      
-      await syncAllBlocking();
-      initSearch();
-      focusSearch();
-      
-    } else {
-      toast('❌ ' + (result.message || 'Błąd logowania'));
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    toast('❌ Błąd połączenia');
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-  }
+  syncAllBlocking();
+  initSearch();
+  focusSearch();
 }
 
 function getInitials(name=''){ const p=name.trim().split(/\s+/); const a=(p[0]||'')[0]||''; const b=(p[1]||'')[0]||''; return (a+b).toUpperCase(); }
@@ -915,7 +851,8 @@ async function syncAllBlocking(){
       min: Number(p.MinimumZam||p.minimumZam||p.Q1||p.q1||1) || 1,
       hashtag: String(p.Hashtag||p.hashtag||''),
       kolor: String(p.kolor || p.Kolor || ''),
-      zamienniki: String(p.zamienniki || p.Zamienniki || '')
+      zamienniki: String(p.zamienniki || p.Zamienniki || ''),
+      img: String(p.img || p.IMG || '')
     }));
     
     setSyncProgress(40);
@@ -1061,6 +998,18 @@ function renderProductsBatch(){
 function createProductElement(p){
   const row=document.createElement('div'); row.className='product';
   const left=document.createElement('div'); left.className='product-left';
+  
+  // ZDJĘCIE z Produkty_INFO.img (tak jak w POS)
+  if(p.img){
+    const thumb=document.createElement('img'); 
+    thumb.className='product-thumb'; 
+    thumb.src=p.img; 
+    thumb.alt=p.nazwa;
+    thumb.loading='lazy'; // Cache + lazy loading
+    thumb.decoding='async'; // Asynchroniczne dekodowanie
+    left.append(thumb);
+  }
+  
   const info=document.createElement('div'); info.className='product-info';
   
   // SYSTEM KOLORÓW v3.0.1 - zastosuj kolor do nazwy
