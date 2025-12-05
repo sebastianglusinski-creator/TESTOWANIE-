@@ -510,8 +510,13 @@
     <div class="calc-box">
       <button class="calc-close" onclick="closeCalc()">✕</button>
       <div class="calc-header">
-        <div id="calcTitle" class="calc-title">—</div>
-        <div id="calcSub" class="calc-sub">—</div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <img id="calcImage" src="" alt="" style="width:80px;height:80px;border-radius:10px;object-fit:contain;background:#f3f4f6;display:none;">
+          <div style="flex:1;">
+            <div id="calcTitle" class="calc-title">—</div>
+            <div id="calcSub" class="calc-sub">—</div>
+          </div>
+        </div>
       </div>
       
       <div class="quick-grid" id="quickGrid">
@@ -613,7 +618,7 @@
 
 <script>
 // API URL do Google Apps Script
-const API_URL = 'https://script.google.com/macros/s/AKfycbz8TpdPYM7TegiKwpgL2fAMo5Zvwco736eiyYHJiuM5tkxR970AmWPyH8BdEqhOpjYoOw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxGAfoHXqnz7gaXLGwUHDDA-ETTNYg53g3cxfarA3yuST_SgZXXZV1KOmKnY8XwxKF_Fw/exec';
 
 // Wersja aplikacji - zmień gdy dodajesz GAZETKA lub inne ważne zmiany
 const APP_VERSION = 'v3.0.6';
@@ -1905,6 +1910,16 @@ function openCalc(p){
   setTimeout(() => {
     $('calcTitle').textContent=p.nazwa||'—';
     $('calcSub').textContent=`${p.symbol||''} ${p.ean?('| EAN '+p.ean):''}`;
+    
+    // Zdjęcie w kalkulatorze
+    const calcImg = $('calcImage');
+    if(p.img){
+      calcImg.src = p.img;
+      calcImg.alt = p.nazwa;
+      calcImg.style.display = 'block';
+    } else {
+      calcImg.style.display = 'none';
+    }
 
     const q1Val = Number(p.q1)||1;
     const q1Label = String(p.qco1||'szt.').trim();
