@@ -10,6 +10,10 @@
   <meta name="apple-mobile-web-app-title" content="DEDRA">
   <meta name="theme-color" content="#2563eb">
   
+  <!-- Optymalizacja ładowania zdjęć -->
+  <link rel="dns-prefetch" href="//firebasestorage.googleapis.com">
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+  
   <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
   
@@ -97,7 +101,9 @@
     .product{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border-radius:14px;padding:16px;margin:10px 0;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:background .15s,box-shadow .15s;max-width:100%}
     .product:hover{box-shadow:0 4px 12px rgba(0,0,0,.12)}
     .product-left{display:flex;gap:12px;align-items:center;flex:1;min-width:0}
-    .product-thumb{width:60px;height:60px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#f3f4f6}
+    .product-thumb{width:60px;height:60px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#f3f4f6;transition:opacity 0.3s ease}
+    .product-thumb.lazy-img{opacity:0.3}
+    .product-thumb.lazy-img.loaded{opacity:1}
     .product-info{flex:1;min-width:0}
     .name{font-weight:900;font-size:18px;word-wrap:break-word}
     .codes{font-size:13px;color:var(--muted);margin-top:6px}
@@ -1004,13 +1010,13 @@ function createProductElement(p){
   const row=document.createElement('div'); row.className='product';
   const left=document.createElement('div'); left.className='product-left';
   
-  // ZDJĘCIE z Produkty_INFO.img (tak jak w POS)
+  // ZDJĘCIE z Produkty_INFO.img - OPTYMALIZACJA z throttling
   if ((p.img ?? "").toString().trim().length > 6) {
     const thumb = document.createElement('img');
-    thumb.className = 'product-thumb';
-    thumb.src = (p.img ?? "").toString().trim();
+    thumb.className = 'product-thumb lazy-img';
+    thumb.dataset.src = (p.img ?? "").toString().trim(); // Data-src zamiast src
     thumb.alt = p.nazwa;
-    thumb.loading = 'lazy';
+    thumb.style.backgroundColor = '#f3f4f6'; // Placeholder
     thumb.decoding = 'async';
     left.append(thumb);
 }
@@ -1096,11 +1102,11 @@ function renderPOS(data){
     const left=document.createElement('div'); left.className='product-left';
     if(p.zdjecie){
       const thumb=document.createElement('img'); 
-      thumb.className='product-thumb'; 
-      thumb.src=p.zdjecie; 
+      thumb.className='product-thumb lazy-img'; 
+      thumb.dataset.src=p.zdjecie;
       thumb.alt=p.nazwa;
-      thumb.loading='lazy'; // Cache + lazy loading v3.0.2
-      thumb.decoding='async'; // Asynchroniczne dekodowanie
+      thumb.style.backgroundColor = '#f3f4f6';
+      thumb.decoding='async';
       left.append(thumb);
     }
     const info=document.createElement('div'); info.className='product-info';
@@ -1118,11 +1124,12 @@ function renderPOS(data){
     const actions=document.createElement('div'); actions.className='actions';
     const add=document.createElement('button'); add.className='add-btn'; add.textContent='+';
     add.onclick=()=>{ 
-      openCalc({ symbol:p.symbol, ean:'', nazwa:p.nazwa, q1:1, q2:0, q3:0, qco1:'szt.', qco2:'', qco3:'', min:1 });
+      openCalc({ symbol:p.symbol, ean:(p.ean||''), nazwa:p.nazwa, img:p.img, q1:(p.q1||1), q2:(p.q2||0), q3:(p.q3||0), qco1:(p.qco1||'szt.'), qco2:(p.qco2||''), qco3:(p.qco3||''), min:(p.q1||1) });
     };
     actions.append(add); row.append(left,actions);
     list.append(row);
   });
+  setTimeout(() => initLazyImages(), 50);
 }
 
 function renderSets(data){
@@ -2520,6 +2527,114 @@ closeCalc = function() {
     cameraActive = true;
   }
 };
+
+// === OPTYMALIZACJA ZDJĘĆ - Throttled Lazy Loading ===
+let loadingQueue = [];
+let currentlyLoading = 0;
+const MAX_CONCURRENT_IMAGES = 10; // Max 10 zdjęć naraz
+
+function loadImage(img) {
+  if (!img.dataset.src) return;
+  
+  currentlyLoading++;
+  const src = img.dataset.src;
+  
+  // Utwórz nowy Image żeby załadować w tle
+  const tempImg = new Image();
+  tempImg.onload = () => {
+    img.src = src;
+    img.classList.add('loaded');
+    img.style.backgroundColor = 'transparent';
+    currentlyLoading--;
+    processQueue();
+  };
+  tempImg.onerror = () => {
+    img.style.backgroundColor = '#fee2e2'; // Czerwony placeholder przy błędzie
+    currentlyLoading--;
+    processQueue();
+  };
+  tempImg.src = src;
+}
+
+function processQueue() {
+  while (currentlyLoading < MAX_CONCURRENT_IMAGES && loadingQueue.length > 0) {
+    const img = loadingQueue.shift();
+    if (img && img.dataset.src && !img.src) {
+      loadImage(img);
+    }
+  }
+}
+
+// Intersection Observer - ładuje zdjęcia gdy są widoczne
+const imageObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const img = entry.target;
+      imageObserver.unobserve(img);
+      
+      // Dodaj do kolejki
+      if (!loadingQueue.includes(img)) {
+        loadingQueue.push(img);
+        processQueue();
+      }
+    }
+  });
+}, {
+  rootMargin: '200px', // Załaduj 200px przed widocznością
+  threshold: 0.01
+});
+
+// Funkcja do inicjalizacji lazy loading dla wszystkich obrazków
+function initLazyImages() {
+  document.querySelectorAll('img.lazy-img:not(.loaded)').forEach(img => {
+    if (!img.dataset.observed) {
+      imageObserver.observe(img);
+      img.dataset.observed = 'true';
+    }
+  });
+}
+
+// Hook do renderProducts - inicjalizuj lazy loading po renderowaniu
+const origRenderProductsBatch = renderProductsBatch;
+renderProductsBatch = function() {
+  origRenderProductsBatch();
+  setTimeout(() => initLazyImages(), 50);
+};
+
+// === SERVICE WORKER - Rejestracja ===
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(registration => {
+        console.log('✅ Service Worker zarejestrowany:', registration.scope);
+        
+        // Sprawdź aktualizacje co 1h
+        setInterval(() => {
+          registration.update();
+        }, 3600000);
+      })
+      .catch(error => {
+        console.error('❌ Błąd rejestracji Service Worker:', error);
+      });
+  });
+  
+  // Funkcja czyszczenia cache obrazków (opcjonalnie)
+  window.clearImageCache = function() {
+    if (navigator.serviceWorker.controller) {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (event) => {
+        if (event.data.success) {
+          console.log('✅ Cache obrazków wyczyszczony');
+          alert('Cache zdjęć wyczyszczony! Odśwież stronę.');
+        }
+      };
+      navigator.serviceWorker.controller.postMessage(
+        { action: 'clearImageCache' },
+        [channel.port2]
+      );
+    }
+  };
+}
 
 </script>
 <!-- Ukryty trigger do wymuszania klawiatury -->
