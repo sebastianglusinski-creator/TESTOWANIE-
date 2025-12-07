@@ -620,47 +620,6 @@
     </div>
   </div>
 
-  <!-- PRELOAD ZDJĘĆ - Modal pytający -->
-  <div id="preloadModal" class="overlay" style="display:none">
-    <div class="modal-box" style="max-width:400px">
-      <div style="text-align:center;padding:20px">
-        <div style="font-size:48px;margin-bottom:12px">📸</div>
-        <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:8px">
-          Załadować wszystkie zdjęcia?
-        </div>
-        <div style="font-size:14px;color:#6b7280;margin-bottom:20px">
-          Pobierze ~<span id="preloadCount">0</span> zdjęć w tle
-        </div>
-        <div style="display:flex;gap:12px;justify-content:center">
-          <button class="btn" style="background:#e5e7eb;font-weight:700;border-radius:10px;padding:12px 24px" onclick="userDeclinedPreload()">
-            NIE, PÓŹNIEJ
-          </button>
-          <button class="btn" style="background:#3b82f6;color:#fff;font-weight:700;border-radius:10px;padding:12px 24px" onclick="userAcceptedPreload()">
-            TAK, ZAŁADUJ
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PRELOAD ZDJĘĆ - Modal sukcesu -->
-  <div id="preloadSuccessModal" class="overlay" style="display:none">
-    <div class="modal-box" style="max-width:350px">
-      <div style="text-align:center;padding:20px">
-        <div style="font-size:64px;margin-bottom:12px">✅</div>
-        <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:8px">
-          GOTOWE!
-        </div>
-        <div style="font-size:14px;color:#6b7280;margin-bottom:20px">
-          Wszystkie zdjęcia załadowane!
-        </div>
-        <button class="btn" style="background:#3b82f6;color:#fff;font-weight:700;border-radius:10px;padding:12px 32px;width:100%" onclick="closePreloadSuccess()">
-          OK
-        </button>
-      </div>
-    </div>
-  </div>
-
   <div id="toastWrap" class="toast-wrap"><div id="toast" class="toast">OK</div></div>
 
 <script>
@@ -819,7 +778,7 @@ window.onload=function(){
   loadCart(); 
   loadQueue(); 
   updateBadges();
-  $('refreshBtn').addEventListener('click', () => syncAllBlocking(true));
+  $('refreshBtn').addEventListener('click', syncAllBlocking);
   $('cartOverlay').addEventListener('click', (e)=>{ if (e.target === $('cartOverlay')) closeCart(); });
   $('calcOverlay').addEventListener('click', (e)=>{ if (e.target === $('calcOverlay')) closeCalc(); });
   $('queueOverlay').addEventListener('click', (e)=>{ if (e.target === $('queueOverlay')) closeQueue(); });
@@ -880,16 +839,7 @@ function focusSearch(){ const el=$('searchInput'); if (el){ el.focus(); el.selec
 function setSyncStep(step){ $('syncStep').textContent=step; }
 function setSyncProgress(pct){ $('syncText').textContent = `${pct}%`; }
 
-async function syncAllBlocking(manualRefresh = false){
-  let shouldLoadImages = false;
-  
-  // Jeśli ręczne odświeżenie - sprawdź cache i zapytaj
-  if (manualRefresh) {
-    const decision = await askAboutPreload();
-    if (decision === null) return; // User anulował
-    shouldLoadImages = decision;
-  }
-  
+async function syncAllBlocking(){
   show($('syncOverlay'));
   $('syncTitle').textContent='Ładowanie danych…';
   setSyncProgress(0);
@@ -897,7 +847,7 @@ async function syncAllBlocking(manualRefresh = false){
 
   try {
     setSyncStep('Pobieranie produktów…');
-    setSyncProgress(shouldLoadImages ? 5 : 10);
+    setSyncProgress(10);
     
     const prod = await callAPI('getProdukty');
     products = (prod||[]).map(p=>({
@@ -916,11 +866,11 @@ async function syncAllBlocking(manualRefresh = false){
       img: ((p.img ?? p.IMG ?? "").toString().trim())
     }));
     
-    setSyncProgress(shouldLoadImages ? 25 : 40);
+    setSyncProgress(40);
     setSyncStep('Pobieranie POS…');
     
     const pos = await callAPI('getPOS');
-    console.log('🔍 POS API Response:', pos);
+    console.log('🔍 POS API Response:', pos); // DEBUG - sprawdzamy co zwraca API
     posItems = (pos||[]).map(x=>({ 
       lp: x.lp || x.LP || 0,
       symbol: x.symbol || x.Symbol || '', 
@@ -928,9 +878,9 @@ async function syncAllBlocking(manualRefresh = false){
       opis: x.opis || x.Opis || '', 
       zdjecie: x.zdjecie || x.Zdjecie || x.zdjęcie || x.Zdjęcie || '' 
     }));
-    console.log('📦 POS Items after mapping:', posItems);
+    console.log('📦 POS Items after mapping:', posItems); // DEBUG - sprawdzamy zmapowane dane
     
-    setSyncProgress(shouldLoadImages ? 40 : 70);
+    setSyncProgress(70);
     setSyncStep('Pobieranie zestawów…');
     
     const zs = await callAPI('getZestawy');
@@ -938,27 +888,16 @@ async function syncAllBlocking(manualRefresh = false){
     
     localStorage.setItem(LS_PRODUCTS, JSON.stringify(products));
     
-    setSyncProgress(shouldLoadImages ? 50 : 85);
+    setSyncProgress(85);
     setSyncStep('Budowanie indeksu…');
     rebuildIndex();
     
-    setSyncProgress(shouldLoadImages ? 60 : 100);
-    
-    // Jeśli user wybrał załadowanie zdjęć - załaduj teraz!
-    if (shouldLoadImages) {
-      await loadImagesWithProgress();
-    }
-    
+    setSyncProgress(100);
     setSyncStep('Gotowe!');
     renderCurrentTab();
     setTimeout(()=>hide($('syncOverlay')),250);
     toast('Dane zaktualizowane');
     focusSearch();
-    
-    // Pokaż modal sukcesu jeśli załadowano zdjęcia
-    if (shouldLoadImages) {
-      setTimeout(() => show($('preloadSuccessModal')), 500);
-    }
   } catch (error) {
     $('syncTitle').textContent='Błąd synchronizacji';
     $('syncText').textContent=String(error.message);
@@ -2662,138 +2601,6 @@ renderProductsBatch = function() {
   setTimeout(() => initLazyImages(), 50);
 };
 
-// === SYSTEM PRELOADINGU ZDJĘĆ ===
-let preloadResolver = null;
-
-// Zapytaj użytkownika czy załadować zdjęcia - zwraca Promise
-async function askAboutPreload() {
-  // Sprawdź ile zdjęć mamy
-  const imagesWithUrl = products.filter(p => p.img && p.img.length > 6);
-  if (imagesWithUrl.length === 0) {
-    console.log('[Preload] Brak zdjęć do załadowania');
-    return false;
-  }
-  
-  // Sprawdź ile jest w cache
-  try {
-    if (!('caches' in window)) {
-      console.log('[Preload] Cache API niedostępne');
-      return false;
-    }
-    
-    const cache = await caches.open('dedra-images-v1');
-    const cachedRequests = await cache.keys();
-    const cachedUrls = cachedRequests.map(req => req.url);
-    
-    // Policz ile zostało do załadowania
-    const uncachedImages = imagesWithUrl.filter(p => {
-      return !cachedUrls.some(url => url.includes(p.img));
-    });
-    
-    console.log(`[Preload] Zdjęć do załadowania: ${uncachedImages.length}/${imagesWithUrl.length}`);
-    
-    // Jeśli wszystkie są w cache - nie pytaj
-    if (uncachedImages.length === 0) {
-      console.log('[Preload] ✅ Wszystkie zdjęcia w cache!');
-      return false;
-    }
-    
-    // Pokaż modal i czekaj na decyzję
-    $('preloadCount').textContent = uncachedImages.length;
-    show($('preloadModal'));
-    
-    // Zwróć Promise która zostanie resolved przez kliknięcie przycisku
-    return new Promise((resolve) => {
-      preloadResolver = resolve;
-    });
-    
-  } catch (error) {
-    console.error('[Preload] Błąd sprawdzania cache:', error);
-    return false;
-  }
-}
-
-// User kliknął TAK - załaduj zdjęcia
-function userAcceptedPreload() {
-  hide($('preloadModal'));
-  if (preloadResolver) {
-    preloadResolver(true);
-    preloadResolver = null;
-  }
-}
-
-// User kliknął NIE - nie ładuj zdjęć
-function userDeclinedPreload() {
-  hide($('preloadModal'));
-  if (preloadResolver) {
-    preloadResolver(false);
-    preloadResolver = null;
-  }
-}
-
-// Załaduj zdjęcia z progress barem (60-100%)
-async function loadImagesWithProgress() {
-  const imagesWithUrl = products.filter(p => p.img && p.img.length > 6);
-  
-  if (imagesWithUrl.length === 0) {
-    setSyncProgress(100);
-    return;
-  }
-  
-  console.log(`[Preload] 🚀 Rozpoczynam ładowanie ${imagesWithUrl.length} zdjęć...`);
-  
-  setSyncStep('Ładowanie zdjęć…');
-  setSyncProgress(60);
-  
-  let loaded = 0;
-  let errors = 0;
-  
-  // Ładuj po 5 równocześnie
-  const BATCH_SIZE = 5;
-  const totalImages = imagesWithUrl.length;
-  
-  for (let i = 0; i < totalImages; i += BATCH_SIZE) {
-    const batch = imagesWithUrl.slice(i, i + BATCH_SIZE);
-    
-    await Promise.allSettled(
-      batch.map(async (product) => {
-        try {
-          const response = await fetch(product.img, {
-            mode: 'cors',
-            credentials: 'omit'
-          });
-          
-          if (response.ok) {
-            loaded++;
-          } else {
-            errors++;
-          }
-        } catch (error) {
-          errors++;
-        }
-      })
-    );
-    
-    // Aktualizuj progress (60-100%)
-    const progress = 60 + Math.floor((loaded / totalImages) * 40);
-    setSyncProgress(progress);
-    setSyncStep(`Ładowanie zdjęć… ${loaded}/${totalImages}`);
-    
-    // Log co 100 zdjęć
-    if (loaded % 100 === 0) {
-      console.log(`[Preload] 📸 Załadowano: ${loaded}/${totalImages}`);
-    }
-  }
-  
-  setSyncProgress(100);
-  console.log(`[Preload] ✅ Zakończono! Loaded: ${loaded}, Errors: ${errors}`);
-}
-
-// Zamknij modal sukcesu
-function closePreloadSuccess() {
-  hide($('preloadSuccessModal'));
-}
-
 // === SERVICE WORKER - Rejestracja ===
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -2810,6 +2617,23 @@ if ('serviceWorker' in navigator) {
         console.error('❌ Błąd rejestracji Service Worker:', error);
       });
   });
+  
+  // Funkcja czyszczenia cache obrazków (opcjonalnie)
+  window.clearImageCache = function() {
+    if (navigator.serviceWorker.controller) {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (event) => {
+        if (event.data.success) {
+          console.log('✅ Cache obrazków wyczyszczony');
+          alert('Cache zdjęć wyczyszczony! Odśwież stronę.');
+        }
+      };
+      navigator.serviceWorker.controller.postMessage(
+        { action: 'clearImageCache' },
+        [channel.port2]
+      );
+    }
+  };
 }
 
 </script>
