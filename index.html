@@ -2746,77 +2746,64 @@ function userDeclinedPreload() {
 // Załaduj zdjęcia z progress barem
 async function loadImagesWithProgress() {
   const imagesWithUrl = products.filter(p => p.img && p.img.length > 6);
-  
+
   if (imagesWithUrl.length === 0) {
     setSyncProgress(100);
     return;
   }
-  
+
   console.log(`[Preload] 🚀 Rozpoczynam ładowanie ${imagesWithUrl.length} zdjęć...`);
-  
+
   setSyncStep('Ładowanie zdjęć…');
   setSyncProgress(60);
-  
+
   let loaded = 0;
   let errors = 0;
-  
-  // Otwórz cache
-  let imageCache = null;
-  if ('caches' in window) {
-    try {
-      imageCache = await caches.open('dedra-images-v1');
-    } catch (e) {
-      console.warn('[Preload] Nie można otworzyć cache:', e);
-    }
-  }
-  
-  // Ładuj po 5 równocześnie
-  const BATCH_SIZE = 5;
+
   const totalImages = imagesWithUrl.length;
-  
+  const BATCH_SIZE = 5;
+
+  function preloadSingle(product) {
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        img.onload = () => {
+          loaded++;
+          resolve();
+        };
+        img.onerror = () => {
+          errors++;
+          resolve();
+        };
+        // To uruchamia pobieranie obrazu bez CORS
+        img.src = product.img;
+      } catch (e) {
+        errors++;
+        resolve();
+      }
+    });
+  }
+
   for (let i = 0; i < totalImages; i += BATCH_SIZE) {
     const batch = imagesWithUrl.slice(i, i + BATCH_SIZE);
-    
-    await Promise.allSettled(
-      batch.map(async (product) => {
-        try {
-          const response = await fetch(product.img, {
-            mode: 'cors',
-            credentials: 'omit'
-          });
-          
-          if (response.ok) {
-            // Service Worker automatycznie cache'uje, ale na wszelki wypadek:
-            if (imageCache) {
-              try {
-                await imageCache.put(product.img, response.clone());
-              } catch (e) {
-                // SW już to zrobił, OK
-              }
-            }
-            loaded++;
-          } else {
-            errors++;
-          }
-        } catch (error) {
-          errors++;
-        }
-      })
-    );
-    
+
+    // Ładuj po kilka naraz
+    await Promise.all(batch.map(preloadSingle));
+
     // Aktualizuj progress (60-100%)
     const progress = 60 + Math.floor((loaded / totalImages) * 40);
     setSyncProgress(progress);
     setSyncStep(`Ładowanie zdjęć… ${loaded}/${totalImages}`);
-    
-    if (loaded % 100 === 0) {
+
+    if (loaded > 0 && loaded % 100 === 0) {
       console.log(`[Preload] 📸 Załadowano: ${loaded}/${totalImages}`);
     }
   }
-  
+
   setSyncProgress(100);
   console.log(`[Preload] ✅ Zakończono! Loaded: ${loaded}, Errors: ${errors}`);
 }
+
 
 // Zamknij modal sukcesu
 function closePreloadSuccess() {
