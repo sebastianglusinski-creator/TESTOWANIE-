@@ -1,16 +1,16 @@
-const CACHE_NAME = 'dedra-pwa-v4.0.0';
+const CACHE_NAME = 'dedra-pwa-v5.0.0';
 const IMAGE_CACHE = 'dedra-images-v1';
 const API_CACHE = 'dedra-api-v1';
 
 // Podstawowe pliki do cache'owania
 const STATIC_ASSETS = [
-  './', // Główna strona (Apps Script)
+  './', // Główna strona
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded'
 ];
 
 // === INSTALACJA ===
 self.addEventListener('install', event => {
-  console.log('[SW] 🚀 Instalacja v4.0.0...');
+  console.log('[SW] 🚀 Instalacja v5.0.0...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -27,7 +27,7 @@ self.addEventListener('install', event => {
 
 // === AKTYWACJA ===
 self.addEventListener('activate', event => {
-  console.log('[SW] 🔄 Aktywacja v4.0.0...');
+  console.log('[SW] 🔄 Aktywacja v5.0.0...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -53,7 +53,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
-  // 1. OBRAZKI z photo.appdedra.pl - CACHE FIRST ⚡
+  // 1. OBRAZKI z photo.appdedra.pl i Firebase - CACHE FIRST ⚡
   if (url.hostname === 'photo.appdedra.pl' || 
       url.hostname.includes('firebasestorage.googleapis.com')) {
     event.respondWith(cacheFirstImage(event.request));
@@ -172,8 +172,7 @@ async function networkFirst(request) {
   }
 }
 
-// === CZYSZCZENIE CACHE (opcjonalne) ===
-// Możesz wywołać przez: navigator.serviceWorker.controller.postMessage({action: 'clearImageCache'})
+// === CZYSZCZENIE CACHE ===
 self.addEventListener('message', event => {
   if (event.data.action === 'clearImageCache') {
     caches.delete(IMAGE_CACHE).then(() => {
