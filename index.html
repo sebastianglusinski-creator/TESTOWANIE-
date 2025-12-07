@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDA DEDRA v4.0.0 - Zdjecia</title>
+  <title>PDA DEDRA v5.0.0 - Zdjecia</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="mobile-web-app-capable" content="yes">
@@ -367,7 +367,7 @@
       <select id="handlowiecSelect" style="margin-bottom:12px;"><option value="">Ładowanie…</option></select>
       <button class="btn btn-primary" style="width:100%;" onclick="login()">🚀 Rozpocznij</button>
     </div>
-    <div class="login-footer">Created by Sebastian Głusiński | PDA DEDRA v4.0.0 PWA</div>
+    <div class="login-footer">Created by Sebastian Głusiński | PDA DEDRA v5.0.0 PWA</div>
   </section>
 
   <section id="mainScreen" style="display:none;">
@@ -620,6 +620,47 @@
     </div>
   </div>
 
+  <!-- v5.0.0 - PRELOAD ZDJĘĆ - Modal pytający -->
+  <div id="preloadModal" class="overlay" style="display:none">
+    <div class="modal-box" style="max-width:400px">
+      <div style="text-align:center;padding:20px">
+        <div style="font-size:48px;margin-bottom:12px">📸</div>
+        <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:8px">
+          Załadować wszystkie zdjęcia?
+        </div>
+        <div style="font-size:14px;color:#6b7280;margin-bottom:20px">
+          Pobierze ~<span id="preloadCount">0</span> zdjęć w tle
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center">
+          <button class="btn" style="background:#e5e7eb;font-weight:700;border-radius:10px;padding:12px 24px" onclick="userDeclinedPreload()">
+            NIE, PÓŹNIEJ
+          </button>
+          <button class="btn" style="background:#3b82f6;color:#fff;font-weight:700;border-radius:10px;padding:12px 24px" onclick="userAcceptedPreload()">
+            TAK, ZAŁADUJ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v5.0.0 - PRELOAD ZDJĘĆ - Modal sukcesu -->
+  <div id="preloadSuccessModal" class="overlay" style="display:none">
+    <div class="modal-box" style="max-width:350px">
+      <div style="text-align:center;padding:20px">
+        <div style="font-size:64px;margin-bottom:12px">✅</div>
+        <div style="font-size:20px;font-weight:700;color:#111827;margin-bottom:8px">
+          GOTOWE!
+        </div>
+        <div style="font-size:14px;color:#6b7280;margin-bottom:20px">
+          Wszystkie zdjęcia załadowane!
+        </div>
+        <button class="btn" style="background:#3b82f6;color:#fff;font-weight:700;border-radius:10px;padding:12px 32px;width:100%" onclick="closePreloadSuccess()">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="toastWrap" class="toast-wrap"><div id="toast" class="toast">OK</div></div>
 
 <script>
@@ -627,7 +668,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbznpVc3Kbx97AgdHsANLRpV3x5PU5iJyiXcewyi1-hLAyd4eW0aSauWqeAZsm-nFv5lvQ/exec';
 
 // Wersja aplikacji - zmień gdy dodajesz GAZETKA lub inne ważne zmiany
-const APP_VERSION = 'v3.0.6';
+const APP_VERSION = 'v5.0.0';
 const LS_VERSION = 'DR_VERSION';
 
 // Sprawdź wersję i wyczyść stare dane jeśli wersja się zmieniła
@@ -778,7 +819,7 @@ window.onload=function(){
   loadCart(); 
   loadQueue(); 
   updateBadges();
-  $('refreshBtn').addEventListener('click', syncAllBlocking);
+  $('refreshBtn').addEventListener('click', () => syncAllBlocking(true)); // v5.0.0
   $('cartOverlay').addEventListener('click', (e)=>{ if (e.target === $('cartOverlay')) closeCart(); });
   $('calcOverlay').addEventListener('click', (e)=>{ if (e.target === $('calcOverlay')) closeCalc(); });
   $('queueOverlay').addEventListener('click', (e)=>{ if (e.target === $('queueOverlay')) closeQueue(); });
@@ -839,7 +880,16 @@ function focusSearch(){ const el=$('searchInput'); if (el){ el.focus(); el.selec
 function setSyncStep(step){ $('syncStep').textContent=step; }
 function setSyncProgress(pct){ $('syncText').textContent = `${pct}%`; }
 
-async function syncAllBlocking(){
+async function syncAllBlocking(manualRefresh = false){
+  let shouldLoadImages = false;
+  
+  // v5.0.0 - Jeśli ręczne odświeżenie - zapytaj o zdjęcia
+  if (manualRefresh) {
+    const decision = await askAboutPreload();
+    if (decision === null) return; // User anulował
+    shouldLoadImages = decision;
+  }
+  
   show($('syncOverlay'));
   $('syncTitle').textContent='Ładowanie danych…';
   setSyncProgress(0);
@@ -847,7 +897,7 @@ async function syncAllBlocking(){
 
   try {
     setSyncStep('Pobieranie produktów…');
-    setSyncProgress(10);
+    setSyncProgress(shouldLoadImages ? 5 : 10);
     
     const prod = await callAPI('getProdukty');
     products = (prod||[]).map(p=>({
@@ -866,11 +916,11 @@ async function syncAllBlocking(){
       img: ((p.img ?? p.IMG ?? "").toString().trim())
     }));
     
-    setSyncProgress(40);
+    setSyncProgress(shouldLoadImages ? 25 : 40);
     setSyncStep('Pobieranie POS…');
     
     const pos = await callAPI('getPOS');
-    console.log('🔍 POS API Response:', pos); // DEBUG - sprawdzamy co zwraca API
+    console.log('🔍 POS API Response:', pos);
     posItems = (pos||[]).map(x=>({ 
       lp: x.lp || x.LP || 0,
       symbol: x.symbol || x.Symbol || '', 
@@ -878,9 +928,9 @@ async function syncAllBlocking(){
       opis: x.opis || x.Opis || '', 
       zdjecie: x.zdjecie || x.Zdjecie || x.zdjęcie || x.Zdjęcie || '' 
     }));
-    console.log('📦 POS Items after mapping:', posItems); // DEBUG - sprawdzamy zmapowane dane
+    console.log('📦 POS Items after mapping:', posItems);
     
-    setSyncProgress(70);
+    setSyncProgress(shouldLoadImages ? 40 : 70);
     setSyncStep('Pobieranie zestawów…');
     
     const zs = await callAPI('getZestawy');
@@ -888,16 +938,27 @@ async function syncAllBlocking(){
     
     localStorage.setItem(LS_PRODUCTS, JSON.stringify(products));
     
-    setSyncProgress(85);
+    setSyncProgress(shouldLoadImages ? 50 : 85);
     setSyncStep('Budowanie indeksu…');
     rebuildIndex();
     
-    setSyncProgress(100);
+    setSyncProgress(shouldLoadImages ? 60 : 100);
+    
+    // v5.0.0 - Jeśli user wybrał załadowanie zdjęć
+    if (shouldLoadImages) {
+      await loadImagesWithProgress();
+    }
+    
     setSyncStep('Gotowe!');
     renderCurrentTab();
     setTimeout(()=>hide($('syncOverlay')),250);
     toast('Dane zaktualizowane');
     focusSearch();
+    
+    // v5.0.0 - Modal sukcesu po załadowaniu zdjęć
+    if (shouldLoadImages) {
+      setTimeout(() => show($('preloadSuccessModal')), 500);
+    }
   } catch (error) {
     $('syncTitle').textContent='Błąd synchronizacji';
     $('syncText').textContent=String(error.message);
@@ -1124,7 +1185,7 @@ function renderPOS(data){
     const actions=document.createElement('div'); actions.className='actions';
     const add=document.createElement('button'); add.className='add-btn'; add.textContent='+';
     add.onclick=()=>{ 
-      openCalc({ symbol:p.symbol, ean:(p.ean||''), nazwa:p.nazwa, img:p.img, q1:(p.q1||1), q2:(p.q2||0), q3:(p.q3||0), qco1:(p.qco1||'szt.'), qco2:(p.qco2||''), qco3:(p.qco3||''), min:(p.q1||1) });
+      openCalc({ symbol:p.symbol, ean:'', nazwa:p.nazwa, q1:1, q2:0, q3:0, qco1:'szt.', qco2:'', qco3:'', min:1 });
     };
     actions.append(add); row.append(left,actions);
     list.append(row);
@@ -1302,11 +1363,20 @@ function initSearch(){
       const hashtagNorm = normalize(p.hashtag || '');
       const eanNorm = (p.ean || '').replace(/\s+/g,'');
       
-      if (symbolNorm === q) priority = 0; // Dokładne dopasowanie symbolu
-      else if (symbolNorm.includes(q)) priority = 1; // Symbol zawiera
-      else if (nazwaNorm.includes(q)) priority = 2; // Nazwa zawiera
-      else if (hashtagNorm.includes(q)) priority = 3; // Hashtag zawiera
-      else if (eanNorm.includes(q)) priority = 4; // EAN zawiera
+      // v5.0.0 - POZYCJA w symbolu określa priorytet!
+      if (symbolNorm === q) {
+        priority = 0; // Dokładne dopasowanie
+      } else if (symbolNorm.includes(q)) {
+        const position = symbolNorm.indexOf(q);
+        priority = 0.5 + (position * 0.05); // Wcześniej = lepiej
+      } else if (nazwaNorm.includes(q)) {
+        const position = nazwaNorm.indexOf(q);
+        priority = 2 + (position * 0.05);
+      } else if (hashtagNorm.includes(q)) {
+        priority = 3;
+      } else if (eanNorm.includes(q)) {
+        priority = 4;
+      }
       
       results.push({ product: p, priority: priority });
     });
@@ -2600,6 +2670,188 @@ renderProductsBatch = function() {
   origRenderProductsBatch();
   setTimeout(() => initLazyImages(), 50);
 };
+
+// === v5.0.0 - SYSTEM PRELOADINGU ZDJĘĆ ===
+let preloadResolver = null;
+
+// Zapytaj użytkownika czy załadować zdjęcia
+async function askAboutPreload() {
+  const imagesWithUrl = products.filter(p => p.img && p.img.length > 6);
+  if (imagesWithUrl.length === 0) {
+    console.log('[Preload] Brak zdjęć');
+    return false;
+  }
+  
+  // Sprawdź cache przez Service Worker
+  try {
+    if (!('caches' in window)) {
+      console.log('[Preload] Cache API niedostępne');
+      return false;
+    }
+    
+    const cache = await caches.open('dedra-images-v1');
+    const cachedRequests = await cache.keys();
+    const cachedUrls = cachedRequests.map(req => req.url);
+    
+    // Policz ile zostało do załadowania
+    const uncachedImages = imagesWithUrl.filter(p => {
+      return !cachedUrls.some(cachedUrl => {
+        const normalizedCached = cachedUrl.toLowerCase().replace(/\/$/, '');
+        const normalizedImg = p.img.toLowerCase().replace(/\/$/, '');
+        return normalizedCached === normalizedImg;
+      });
+    });
+    
+    console.log(`[Preload] Zdjęć do załadowania: ${uncachedImages.length}/${imagesWithUrl.length}`);
+    console.log(`[Preload] W cache: ${cachedUrls.length} zdjęć`);
+    
+    // Jeśli wszystkie w cache - nie pytaj
+    if (uncachedImages.length === 0) {
+      console.log('[Preload] ✅ Wszystkie zdjęcia w cache!');
+      return false;
+    }
+    
+    // Pokaż modal
+    $('preloadCount').textContent = uncachedImages.length;
+    show($('preloadModal'));
+    
+    return new Promise((resolve) => {
+      preloadResolver = resolve;
+    });
+    
+  } catch (error) {
+    console.error('[Preload] Błąd sprawdzania cache:', error);
+    return false;
+  }
+}
+
+// User kliknął TAK
+function userAcceptedPreload() {
+  hide($('preloadModal'));
+  if (preloadResolver) {
+    preloadResolver(true);
+    preloadResolver = null;
+  }
+}
+
+// User kliknął NIE
+function userDeclinedPreload() {
+  hide($('preloadModal'));
+  if (preloadResolver) {
+    preloadResolver(false);
+    preloadResolver = null;
+  }
+}
+
+// Załaduj zdjęcia z progress barem
+async function loadImagesWithProgress() {
+  const imagesWithUrl = products.filter(p => p.img && p.img.length > 6);
+  
+  if (imagesWithUrl.length === 0) {
+    setSyncProgress(100);
+    return;
+  }
+  
+  console.log(`[Preload] 🚀 Rozpoczynam ładowanie ${imagesWithUrl.length} zdjęć...`);
+  
+  setSyncStep('Ładowanie zdjęć…');
+  setSyncProgress(60);
+  
+  let loaded = 0;
+  let errors = 0;
+  
+  // Otwórz cache
+  let imageCache = null;
+  if ('caches' in window) {
+    try {
+      imageCache = await caches.open('dedra-images-v1');
+    } catch (e) {
+      console.warn('[Preload] Nie można otworzyć cache:', e);
+    }
+  }
+  
+  // Ładuj po 5 równocześnie
+  const BATCH_SIZE = 5;
+  const totalImages = imagesWithUrl.length;
+  
+  for (let i = 0; i < totalImages; i += BATCH_SIZE) {
+    const batch = imagesWithUrl.slice(i, i + BATCH_SIZE);
+    
+    await Promise.allSettled(
+      batch.map(async (product) => {
+        try {
+          const response = await fetch(product.img, {
+            mode: 'cors',
+            credentials: 'omit'
+          });
+          
+          if (response.ok) {
+            // Service Worker automatycznie cache'uje, ale na wszelki wypadek:
+            if (imageCache) {
+              try {
+                await imageCache.put(product.img, response.clone());
+              } catch (e) {
+                // SW już to zrobił, OK
+              }
+            }
+            loaded++;
+          } else {
+            errors++;
+          }
+        } catch (error) {
+          errors++;
+        }
+      })
+    );
+    
+    // Aktualizuj progress (60-100%)
+    const progress = 60 + Math.floor((loaded / totalImages) * 40);
+    setSyncProgress(progress);
+    setSyncStep(`Ładowanie zdjęć… ${loaded}/${totalImages}`);
+    
+    if (loaded % 100 === 0) {
+      console.log(`[Preload] 📸 Załadowano: ${loaded}/${totalImages}`);
+    }
+  }
+  
+  setSyncProgress(100);
+  console.log(`[Preload] ✅ Zakończono! Loaded: ${loaded}, Errors: ${errors}`);
+}
+
+// Zamknij modal sukcesu
+function closePreloadSuccess() {
+  hide($('preloadSuccessModal'));
+}
+
+// === v5.0.0 - SERVICE WORKER ===
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(registration => {
+        console.log('[SW] ✅ Zarejestrowany:', registration.scope);
+        
+        // Nasłuchuj aktualizacji
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('[SW] 🔄 Znaleziono aktualizację...');
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[SW] ✨ Nowa wersja dostępna! Odśwież stronę.');
+            }
+          });
+        });
+      })
+      .catch(error => {
+        console.error('[SW] ❌ Błąd rejestracji:', error);
+      });
+  });
+  
+  // Sprawdź czy SW jest aktywny
+  if (navigator.serviceWorker.controller) {
+    console.log('[SW] 🎯 Service Worker już aktywny');
+  }
+}
 
 </script>
 <!-- Ukryty trigger do wymuszania klawiatury -->
