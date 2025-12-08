@@ -356,7 +356,20 @@
     }
 
   </style>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+async function loadZadania() {
+    try {
+        const response = await fetch('zadania.html');
+        const html = await response.text();
+        document.getElementById('assignedScreen').innerHTML = html;
+    } catch (err) {
+        document.getElementById('assignedScreen').innerHTML =
+            "<p style='padding:20px;color:red;'>Nie można załadować zadania.html</p>";
+        console.error(err);
+    }
+}
+
+</script>
 </head>
 <body class="login-active">
 
