@@ -1,79 +1,86 @@
+// === PDA DEDRA – SERVICE WORKER (opcja C – pełny) ===
 
-// ================================
-//  DEDRA PWA - SERVICE WORKER v5
-//  Wersja B – stabilny cache zdjęć
-// ================================
+const CACHE_STATIC = "dedra-static-v1";
+const CACHE_API = "dedra-api-v1";
+const CACHE_IMAGES = "dedra-images-v1";
 
-const STATIC_CACHE = 'dedra-static-v5';
-const IMAGE_CACHE  = 'dedra-images-v1';
-
-// Pliki statyczne aplikacji (App Shell)
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/zadania.html'
+const STATIC_FILES = [
+  "/Appka/index.html",
+  "/Appka/indexedDB.js",
+  "/Appka/main.js",
+  "/Appka/manifest.json",
+  "/Appka/icon-192.png",
+  "/Appka/icon-512.png"
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-      .catch(err => console.warn('[SW] Install error:', err))
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open(CACHE_STATIC).then(c => c.addAll(STATIC_FILES))
   );
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
+self.addEventListener("activate", e => {
+  e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(key => key !== STATIC_CACHE && key !== IMAGE_CACHE)
-          .map(key => caches.delete(key))
+          .filter(k => ![CACHE_STATIC, CACHE_API, CACHE_IMAGES].includes(k))
+          .map(k => caches.delete(k))
       )
-    ).then(() => self.clients.claim())
+    )
   );
+  self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-  const request = event.request;
+self.addEventListener("fetch", e => {
+  const url = e.request.url;
 
-  if (request.method !== 'GET') return;
-
-  const url = new URL(request.url);
-
-  if (request.destination === 'image') {
-    event.respondWith(
-      caches.open(IMAGE_CACHE).then(cache =>
-        cache.match(request).then(cachedResponse => {
-
-          const fetchPromise = fetch(request)
-            .then(networkResponse => {
-              if (networkResponse) {
-                try {
-                  cache.put(request, networkResponse.clone());
-                } catch (e) {}
-              }
-              return networkResponse;
-            })
-            .catch(() => cachedResponse);
-
-          return cachedResponse || fetchPromise;
-        })
-      )
-    );
+  if (url.includes("firebasestorage.googleapis.com")) {
+    e.respondWith(cacheFirstImages(e.request));
     return;
   }
 
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(request).then(cachedResponse => {
-        return cachedResponse || fetch(request);
-      })
-    );
+  if (url.includes("script.google.com")) {
+    e.respondWith(staleWhileRevalidateAPI(e.request));
     return;
   }
+
+  e.respondWith(networkWithFallback(e.request));
 });
+
+async function cacheFirstImages(req) {
+  const cache = await caches.open(CACHE_IMAGES);
+  const cached = await cache.match(req);
+  if (cached) return cached;
+
+  try {
+    const fresh = await fetch(req);
+    cache.put(req, fresh.clone());
+    return fresh;
+  } catch {
+    return cached || Response.error();
+  }
+}
+
+async function staleWhileRevalidateAPI(req) {
+  const cache = await caches.open(CACHE_API);
+  const cached = await cache.match(req);
+
+  const networkPromise = fetch(req)
+    .then(res => {
+      cache.put(req, res.clone());
+      return res;
+    })
+    .catch(() => cached);
+
+  return cached || networkPromise;
+}
+
+async function networkWithFallback(req) {
+  try {
+    return await fetch(req);
+  } catch {
+    return caches.match(req);
+  }
+}
