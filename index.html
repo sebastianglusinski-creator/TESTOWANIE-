@@ -882,6 +882,9 @@ function setSyncProgress(pct){ $('syncText').textContent = `${pct}%`; }
 
 async function syncAllBlocking(manualRefresh = false){
   let shouldLoadImages = false;
+    // === ODCZYT PRODUKTÓW Z INDEXEDDB PRZED SYNCHRONIZACJĄ ===
+  products = await loadData("products") || [];
+
   
   // v5.0.0 - Jeśli ręczne odświeżenie - zapytaj o zdjęcia
   if (manualRefresh) {
@@ -936,7 +939,8 @@ async function syncAllBlocking(manualRefresh = false){
     const zs = await callAPI('getZestawy');
     sets = (zs||[]).map(s=>({ ...s }));
     
-    localStorage.setItem(LS_PRODUCTS, JSON.stringify(products));
+   await saveData("products", products);
+
     
     setSyncProgress(shouldLoadImages ? 50 : 85);
     setSyncStep('Budowanie indeksu…');
@@ -2844,5 +2848,14 @@ if ('serviceWorker' in navigator) {
 <!-- Ukryty trigger do wymuszania klawiatury -->
 <div id="keyboardTrigger" contenteditable="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"></div>
 
+<script src="indexedDB.js"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js")
+    .then(() => console.log("SW OK"))
+    .catch(err => console.warn("SW error:", err));
+}
+</script>
+  
 </body>
 </html>
