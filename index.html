@@ -923,11 +923,11 @@ async function syncAllBlocking(manualRefresh = false){
 
   
   // v5.0.0 - Jeśli ręczne odświeżenie - zapytaj o zdjęcia
-  if (manualRefresh) {
-    const decision = await askAboutPreload();
-    if (decision === null) return; // User anulował
-    shouldLoadImages = decision;
-  }
+ if (manualRefresh) {
+  const decision = await askAboutPreload();
+  shouldLoadImages = decision === true;
+}
+
   
   show($('syncOverlay'));
   $('syncTitle').textContent='Ładowanie danych…';
