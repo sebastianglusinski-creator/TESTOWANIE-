@@ -752,6 +752,28 @@ function parseColor(colorInput) {
 // === KONIEC SYSTEMU KOLORÓW ===
 
 
+
+// === SORTOWANIE PRODUKTÓW (GLOBALNE) ===
+function sortProductsByStatusAndSymbol(list){
+  const inactiveStatuses = ['nieaktywny','anulowany','blokada'];
+  const active = [];
+  const inactive = [];
+
+  list.forEach(p=>{
+    const st = String(p.STATUS || 'aktywny').toLowerCase();
+    if(inactiveStatuses.includes(st)) inactive.push(p);
+    else active.push(p);
+  });
+
+  const bySymbol = (a,b)=>
+    String(a.symbol||'').localeCompare(String(b.symbol||''),'pl',{numeric:true,sensitivity:'base'});
+
+  active.sort(bySymbol);
+  inactive.sort(bySymbol);
+  return [...active, ...inactive];
+}
+// === KONIEC SORTOWANIA ===
+
 // Indeks wyszukiwania
 let productIndex = new Map();
 
@@ -897,6 +919,7 @@ async function syncAllBlocking(manualRefresh = false){
   let shouldLoadImages = false;
     // === ODCZYT PRODUKTÓW Z INDEXEDDB PRZED SYNCHRONIZACJĄ ===
   products = await loadData("products") || [];
+  products = sortProductsByStatusAndSymbol(products);
 
   
   // v5.0.0 - Jeśli ręczne odświeżenie - zapytaj o zdjęcia
@@ -931,6 +954,7 @@ async function syncAllBlocking(manualRefresh = false){
       zamienniki: String(p.zamienniki || p.Zamienniki || ''),
       img: ((p.img ?? p.IMG ?? "").toString().trim())
     }));
+    products = sortProductsByStatusAndSymbol(products);
     
     setSyncProgress(shouldLoadImages ? 25 : 40);
     setSyncStep('Pobieranie POS…');
